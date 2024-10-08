@@ -1,64 +1,82 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import socket from '../../utils/socket'; // シングルトンインスタンスをインポート
+import socket from '../../utils/socket';
+import { BoardState, Player } from '../../utils/gameLogic';
+import WinnerAnnouncement from '../../components/WinnerAnnouncement';
+import Board from '../../components/Board';
 
 const ChatPage = ({ params }: { params: { roomId: string } }) => {
-  const [messages, setMessages] = useState<{ id: string; message: string }[]>([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [board, setBoard] = useState<BoardState>(Array(8).fill(Array(8).fill(null)));
+  const [currentPlayer, setCurrentPlayer] = useState<Player>('black');
+  const [winner, setWinner] = useState<Player | 'draw' | null>(null);
+  const [stones, setStones] = useState<{ black: number, white: number }>({ black: 2, white: 2 });
+  const [socId, setSocId] = useState<string | undefined>(undefined);  // undefined を許容
 
   const roomId = params.roomId;
 
   useEffect(() => {
-    // メッセージ受信のリスナーを登録
-    const handleReceiveMessage = (messageData: { id: string; message: string }) => {
-      setMessages((prevMessages) => [...prevMessages, messageData]);
-      console.log('Received message:', messageData); // メッセージ受信時にコンソールにログ出力
-    };
+    const currentSocketId = socket.id;
+    setSocId(currentSocketId);  // socket.id を取得
 
-    socket.on('receiveMessage', handleReceiveMessage);
+    socket.emit('joinothelloRoom', roomId);
 
-    // クリーンアップ関数でリスナーを解除
+    socket.on('joinRoomResponse', ({ success, board, currentPlayer }) => {
+      if (success) {
+        console.log('Received board:', board); // 受け取ったボードをログ出力
+        setBoard(board);
+        setCurrentPlayer(currentPlayer);
+      } else {
+        console.log('Failed to join room');
+      }
+    });
+
+    socket.on('updateGameState', ({ board, currentPlayer, winner, stones }) => {
+      console.log('Game state updated:', board); // 更新されたボードをログ出力
+      setBoard(board);
+      setCurrentPlayer(currentPlayer);
+      setWinner(winner);
+      setStones(stones);
+    });
+
     return () => {
-      socket.off('receiveMessage', handleReceiveMessage);
+      socket.off('joinRoomResponse');
+      socket.off('updateGameState');
     };
   }, [roomId]);
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      console.log('Sending message to room:', roomId); // メッセージ送信時にコンソールにログ出力
-      socket.emit('sendMessage', roomId, newMessage);
-      setNewMessage('');
+  const handleCellClick = (row: number, col: number) => {
+    // console.log(currentPlayer === socId)
+    if (socId && socId === currentPlayer) {  // socId が undefined でないことを確認
+      socket.emit('makeMove', { roomId, row, col });
+    } else {
+      alert('It is not your turn!');
     }
+  };
+  
+  useEffect(() => {
+    socket.on('invalidMove', (message) => {
+      alert(message.message);  // 他のプレイヤーが動いた場合の警告
+    });
+    
+    return () => {
+      socket.off('invalidMove');
+    };
+  }, []);
+  
+
+  const handleWinnerDismiss = () => {
+    setWinner(null);
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      <div className="flex-1 overflow-auto p-4 bg-gray-100">
-        <div className="flex flex-col space-y-2">
-          {messages.map((msg, index) => (
-            <div key={index} className="p-2 bg-white rounded-md shadow-sm">
-              <strong>{msg.id}</strong>: {msg.message}
-            </div>
-          ))}
-          {roomId ?? 's'}
-        </div>
-      </div>
-      <div className="p-4 bg-gray-200 border-t border-gray-300">
-        <div className="flex">
-          <input
-            type="text"
-            className="flex-1 p-2 border border-gray-300 rounded-md"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-          />
-          <button
-            className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-md"
-            onClick={handleSendMessage}
-          >
-            Send
-          </button>
-        </div>
-      </div>
+    <div className="container mx-auto p-4">
+      <Board board={board} onCellClick={handleCellClick} />
+      <p className="text-center text-lg font-bold mt-4">
+        現在のプレイヤー: {socId === currentPlayer ? 'あなた' : currentPlayer.toUpperCase()}
+      </p>
+      <p className="text-center text-lg font-bold mt-4">黒: {stones.black}  白: {stones.white}</p>
+
+      {winner && <WinnerAnnouncement winner={winner} onDismiss={handleWinnerDismiss} />}
     </div>
   );
 };

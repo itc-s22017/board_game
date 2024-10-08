@@ -48,7 +48,7 @@ const CreateRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
 
   const handleCreateRoom = () => {
     if (roomId.trim() !== "") {
-      socket.emit(`create${game}Room`, roomId);
+      socket.emit(`create${game}Room`, roomId,socket.id);
       router.push(`/room/${roomId}`);
       onClose();
     }
@@ -90,10 +90,10 @@ const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
       }
     };
   
-    socket.on("joinRoomResponse", handleJoinRoomResponse);
+    socket.on("othelloRoomResponse", handleJoinRoomResponse);
   
     return () => {
-      socket.off("joinRoomResponse", handleJoinRoomResponse);
+      socket.off("othelloRoomResponse", handleJoinRoomResponse);
     };
   }, [roomId, router, onClose]);
   
@@ -101,8 +101,8 @@ const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
   const handleJoinRoom = () => {
     if (roomId.trim() !== "") {
       console.log(`Emitting join${game}Room event with roomId: ${roomId}`);
-      socket.emit(`join${game}Room`, roomId);
-      setJoinRoomStatus(null); // Clear previous status
+      socket.emit(`check${game}Room`, roomId);
+      console.log(socket.id)
     }
   };
   
@@ -140,7 +140,6 @@ export default function Home({ params } : { params: { game: string }}) {
   useEffect(() => {
     const handleHasRoom = (roomList: string[]) => {
       setRooms(roomList);
-      console.log('Current rooms:', roomList);
     };
 
     socket.on('connect', () => {
