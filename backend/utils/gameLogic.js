@@ -5,15 +5,46 @@
 // type Player = 'black' | 'white';
 
 // 盤面の初期化を行う関数
+const initializeBoard2 = () => {
+  const board = Array(8).fill(null).map(() => Array(8).fill(null));
+
+  // 初期盤面
+  board[0] = [null, null, null, null, null, null, null, null];
+  board[1] = [null, null, null, 'black', 'white', null, null, null];
+  board[2] = [null, null, null, 'white', 'black', null, null, null];
+  board[3] = ['black', 'white', 'black', null, null, null, null, null];
+  board[4] = ['white', 'black', null, null, null, null, null, null];
+  board[5] = [null, null, null, null, null, null, null, null];
+  board[6] = [null, null, null, null, null, null, null, null];
+  board[7] = [null, null, null, null, null, null, null, null];
+
+  // 追加の石を置いて、次のプレイヤーがパスしなければならない状況を作成
+  board[1][3] = 'black'; // (1,3) に黒
+  board[1][4] = 'white'; // (1,4) に白
+  board[2][3] = 'white'; // (2,3) に白
+  board[2][4] = 'black'; // (2,4) に黒
+  board[3][0] = 'black'; // (3,0) に黒
+  board[3][1] = 'white'; // (3,1) に白
+  board[3][2] = 'black'; // (3,2) に黒
+  board[4][0] = 'white'; // (4,0) に白
+  board[4][1] = 'black'; // (4,1) に黒
+  board[4][2] = 'white'; // (4,2) に白
+
+  return board;
+};
+
+
+
 const initializeBoard = () => {
-    const board = Array(8).fill(null).map(() => Array(8).fill(null));
-    // オセロの初期配置
-    board[3][3] = 'white';
-    board[3][4] = 'black';
-    board[4][3] = 'black';
-    board[4][4] = 'white';
-    return board;
-  };
+  const board = Array(8).fill(null).map(() => Array(8).fill(null));
+  // オセロの初期配置
+  board[3][3] = 'white';
+  board[3][4] = 'black';
+  board[4][3] = 'black';
+  board[4][4] = 'white';
+  return board;
+};
+
   
   // 指定された位置に石を置く処理を行う関数
   const makeMove = (board, row, col, player) => {
@@ -97,6 +128,7 @@ const initializeBoard = () => {
   // モジュールエクスポート
   module.exports = {
     initializeBoard,
+    initializeBoard2,
     makeMove,
     countStones,
     checkWinner,

@@ -20,6 +20,11 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
     socket.emit('joinothelloRoom', roomId);
 
+    socket.on('playerPassed', ({ player }) => {
+      console.log(`Player ${player} has passed their turn.`);
+      alert(`Player ${player} has passed!`);
+    });
+
     socket.on('joinRoomResponse', ({ success, board, currentPlayer }) => {
       if (success) {
         console.log('Received board:', board); // 受け取ったボードをログ出力
@@ -41,6 +46,8 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
     return () => {
       socket.off('joinRoomResponse');
       socket.off('updateGameState');
+      socket.off('playerPassed');
+
     };
   }, [roomId]);
 
@@ -72,7 +79,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
     <div className="container mx-auto p-4">
       <Board board={board} onCellClick={handleCellClick} />
       <p className="text-center text-lg font-bold mt-4">
-        現在のプレイヤー: {socId === currentPlayer ? 'あなた' : currentPlayer.toUpperCase()}
+        現在のプレイヤー: {socId === currentPlayer ? 'あなた' : currentPlayer?.toUpperCase()}
       </p>
       <p className="text-center text-lg font-bold mt-4">黒: {stones.black}  白: {stones.white}</p>
 

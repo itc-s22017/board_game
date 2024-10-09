@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const { initializeBoard, makeMove, checkWinner, countStones } = require('./utils/gameLogic');
+const { initializeBoard,initializeBoard2 ,makeMove, checkWinner, countStones, canMakeMove } = require('./utils/gameLogic');
 
 const app = express();
 app.use(cors({
@@ -33,7 +33,7 @@ io.on('connection', (socket) => {
   socket.on('createothelloRoom', (roomId) => {
     if (!othelloRooms.has(roomId)) {
       // ゲームの状態を初期化してルームに保存
-      const newBoard = initializeBoard();
+      const newBoard = initializeBoard2();
       othelloRooms.set(roomId, {
         board: newBoard,
         currentPlayerIndex: 0,  // 0番目のプレイヤーからスタート
@@ -92,6 +92,10 @@ io.on('connection', (socket) => {
 
   socket.on('makeMove', ({ roomId, row, col }) => {
     const room = othelloRooms.get(roomId);
+    if (room.players.length < 2) { 
+      console.log('dameeeeeeeeeeeeeeeee')
+      return
+    }
     if (room) {
       const { board, currentPlayerIndex, players } = room;
       const currentPlayer = players[currentPlayerIndex];
@@ -99,17 +103,61 @@ io.on('connection', (socket) => {
       // プレイヤーが順番かどうか確認
       if (socket.id === currentPlayer) {
         const cp = room.players.indexOf(currentPlayer);
-        const BorW = cp / 2 === 0
+        const BorW = cp % 2 === 0;
         const newBoard = makeMove(board, row, col, BorW ? 'black' : 'white');
 
         if (newBoard) {
           // 石を置けた場合、次のプレイヤーへ変更
-          const nextPlayerIndex = (currentPlayerIndex + 1) % players.length // 次のプレイヤーのインデックス
+          let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
           room.board = newBoard;
+
+          // 次のプレイヤーが石を置けるか確認
+          let hasPassed = false;
+          while (!canMakeMove(newBoard, nextPlayerIndex % 2 === 0 ? 'black' : 'white')) {
+            nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
+            hasPassed = true;  // パスが発生した場合にフラグを立てる
+
+            // 全員がパスする場合はゲーム終了
+            if (nextPlayerIndex === currentPlayerIndex) {
+              const winner = checkWinner(newBoard);
+              const stones = countStones(newBoard);
+              room.board = initializeBoard();
+              room.currentPlayerIndex = 0;
+              console.log('Board has been reset:', room.board);  // ← ここで初期化された盤面をログ出力して確認
+              io.to(roomId).emit('updateGameState', {
+                board: room.board,  // リセットされた盤面を送信
+                currentPlayer: players[room.currentPlayerIndex],  // 最初のプレイヤーのID
+                winner: winner || null,  // 勝者情報をリセット
+                stones: countStones(room.board),  // 新しい石の数を送信
+              });
+              return;
+            }
+          }
+
           room.currentPlayerIndex = nextPlayerIndex;
 
           const winner = checkWinner(newBoard);
           const stones = countStones(newBoard);
+
+          if (winner) {
+            // 勝者が決まった場合、部屋をリセット
+            room.board = initializeBoard();
+            room.currentPlayerIndex = 0;
+            console.log('Board has been reset:', room.board);  // ← ここで初期化された盤面をログ出力して確認
+            io.to(roomId).emit('updateGameState', {
+              board: room.board,  // リセットされた盤面を送信
+              currentPlayer: players[room.currentPlayerIndex],  // 最初のプレイヤーのID
+              winner: null,  // 勝者情報をリセット
+              stones: countStones(room.board),  // 新しい石の数を送信
+            });
+            return;
+          }
+          
+
+          // パスが発生した場合、その情報をクライアントに送信
+          if (hasPassed) {
+            io.to(roomId).emit('playerPassed', { player: currentPlayer });
+          }
 
           // クライアントに更新された状態を送信
           io.to(roomId).emit('updateGameState', {
@@ -119,18 +167,15 @@ io.on('connection', (socket) => {
             stones
           });
 
+          console.log('161------------------' + board)
 
-          if (winner) {
-            // 勝者が決まった場合、部屋をリセット
-            room.board = initializeBoard();
-            room.currentPlayerIndex = 0;  // 0番目のプレイヤーからスタート
-          }
+        } else {
+          socket.emit('invalidMove', { message: 'そこに石は置けないよ！' });
         }
-      } else {
-        socket.emit('invalidMove', { message: 'Not your turn!' });
       }
     }
   });
+
 
   socket.on('disconnect', () => {
     console.log('A user disconnected:', socket.id);
