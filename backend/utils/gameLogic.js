@@ -9,26 +9,14 @@ const initializeBoard2 = () => {
   const board = Array(8).fill(null).map(() => Array(8).fill(null));
 
   // 初期盤面
-  board[0] = [null, null, null, null, null, null, null, null];
-  board[1] = [null, null, null, 'black', 'white', null, null, null];
-  board[2] = [null, null, null, 'white', 'black', null, null, null];
-  board[3] = ['black', 'white', 'black', null, null, null, null, null];
-  board[4] = ['white', 'black', null, null, null, null, null, null];
+  board[0] = [null, null, 'black', null, null, null, null, null];
+  board[1] = [null, null, null, 'black', 'black', 'white', null, null];
+  board[2] = [null, null, null, 'black', 'black', null, null, null];
+  board[3] = ['black', 'black', 'black', null, null, 'white', null, null];
+  board[4] = ['black', 'black', null, null, null, null, null, null];
   board[5] = [null, null, null, null, null, null, null, null];
   board[6] = [null, null, null, null, null, null, null, null];
   board[7] = [null, null, null, null, null, null, null, null];
-
-  // 追加の石を置いて、次のプレイヤーがパスしなければならない状況を作成
-  board[1][3] = 'black'; // (1,3) に黒
-  board[1][4] = 'white'; // (1,4) に白
-  board[2][3] = 'white'; // (2,3) に白
-  board[2][4] = 'black'; // (2,4) に黒
-  board[3][0] = 'black'; // (3,0) に黒
-  board[3][1] = 'white'; // (3,1) に白
-  board[3][2] = 'black'; // (3,2) に黒
-  board[4][0] = 'white'; // (4,0) に白
-  board[4][1] = 'black'; // (4,1) に黒
-  board[4][2] = 'white'; // (4,2) に白
 
   return board;
 };

@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const { initializeBoard,initializeBoard2 ,makeMove, checkWinner, countStones, canMakeMove } = require('./utils/gameLogic');
+const { initializeBoard, initializeBoard2, makeMove, checkWinner, countStones, canMakeMove } = require('./utils/gameLogic');
 
 const app = express();
 app.use(cors({
@@ -92,7 +92,7 @@ io.on('connection', (socket) => {
 
   socket.on('makeMove', ({ roomId, row, col }) => {
     const room = othelloRooms.get(roomId);
-    if (room.players.length < 2) { 
+    if (room.players.length < 2) {
       console.log('dameeeeeeeeeeeeeeeee')
       return
     }
@@ -111,31 +111,6 @@ io.on('connection', (socket) => {
           let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
           room.board = newBoard;
 
-          // 次のプレイヤーが石を置けるか確認
-          let hasPassed = false;
-          while (!canMakeMove(newBoard, nextPlayerIndex % 2 === 0 ? 'black' : 'white')) {
-            nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
-            hasPassed = true;  // パスが発生した場合にフラグを立てる
-
-            // 全員がパスする場合はゲーム終了
-            if (nextPlayerIndex === currentPlayerIndex) {
-              const winner = checkWinner(newBoard);
-              const stones = countStones(newBoard);
-              room.board = initializeBoard();
-              room.currentPlayerIndex = 0;
-              console.log('Board has been reset:', room.board);  // ← ここで初期化された盤面をログ出力して確認
-              io.to(roomId).emit('updateGameState', {
-                board: room.board,  // リセットされた盤面を送信
-                currentPlayer: players[room.currentPlayerIndex],  // 最初のプレイヤーのID
-                winner: winner || null,  // 勝者情報をリセット
-                stones: countStones(room.board),  // 新しい石の数を送信
-              });
-              return;
-            }
-          }
-
-          room.currentPlayerIndex = nextPlayerIndex;
-
           const winner = checkWinner(newBoard);
           const stones = countStones(newBoard);
 
@@ -147,17 +122,35 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('updateGameState', {
               board: room.board,  // リセットされた盤面を送信
               currentPlayer: players[room.currentPlayerIndex],  // 最初のプレイヤーのID
-              winner: null,  // 勝者情報をリセット
+              winner: winner || null,  // 勝者情報をリセット
               stones: countStones(room.board),  // 新しい石の数を送信
             });
             return;
           }
-          
-
-          // パスが発生した場合、その情報をクライアントに送信
-          if (hasPassed) {
+          // 次のプレイヤーが石を置けるか確認
+          let hasPassed = false;
+          while (!canMakeMove(newBoard, nextPlayerIndex % 2 === 0 ? 'black' : 'white')) {
+            nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
+            hasPassed = true;
             io.to(roomId).emit('playerPassed', { player: currentPlayer });
+
+
+            // 全員がパスする場合はゲーム終了
+            if (nextPlayerIndex === currentPlayerIndex) {
+              const winner = checkWinner(newBoard);
+              const stones = countStones(newBoard);
+              io.to(roomId).emit('updateGameState', {
+                board: newBoard,
+                currentPlayer: null,
+                winner: winner || null,
+                stones
+              });
+            }
           }
+
+
+          room.currentPlayerIndex = nextPlayerIndex;
+
 
           // クライアントに更新された状態を送信
           io.to(roomId).emit('updateGameState', {
