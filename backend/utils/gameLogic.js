@@ -5,18 +5,34 @@
 // type Player = 'black' | 'white';
 
 // 盤面の初期化を行う関数
+// const initializeBoard2 = () => {
+//   const board = Array(8).fill(null).map(() => Array(8).fill(null));
+
+//   // 初期盤面
+//   board[0] = [null, null, 'black', null, null, null, null, null];
+//   board[1] = [null, null, null, 'black', 'black', 'white', null, null];
+//   board[2] = [null, null, null, 'black', 'black', null, null, null];
+//   board[3] = ['black', 'black', 'black', null, null, 'white', null, null];
+//   board[4] = ['black', 'black', null, null, null, null, null, null];
+//   board[5] = [null, null, null, null, null, null, null, null];
+//   board[6] = [null, null, null, null, null, null, null, null];
+//   board[7] = [null, null, null, null, null, null, null, null];
+
+//   return board;
+// };
+
 const initializeBoard2 = () => {
   const board = Array(8).fill(null).map(() => Array(8).fill(null));
 
-  // 初期盤面
-  board[0] = [null, null, 'black', null, null, null, null, null];
-  board[1] = [null, null, null, 'black', 'black', 'white', null, null];
-  board[2] = [null, null, null, 'black', 'black', null, null, null];
-  board[3] = ['black', 'black', 'black', null, null, 'white', null, null];
-  board[4] = ['black', 'black', null, null, null, null, null, null];
-  board[5] = [null, null, null, null, null, null, null, null];
-  board[6] = [null, null, null, null, null, null, null, null];
-  board[7] = [null, null, null, null, null, null, null, null];
+  // 62マス埋まった状態を作成
+  board[0] = ['black', 'black', 'black', 'white', 'black', 'black', 'black', 'white'];
+  board[1] = ['white', 'white', 'white', 'black', 'white', 'white', 'white', 'black'];
+  board[2] = ['black', 'black', 'black', 'white', 'black', 'black', 'black', 'white'];
+  board[3] = ['white', 'white', 'white', 'black', 'white', 'white', 'white', 'black'];
+  board[4] = ['black', 'black', 'black', 'white', 'black', 'black', 'black', 'white'];
+  board[5] = ['white', 'white', 'white', 'black', 'white', 'white', 'white', 'black'];
+  board[6] = ['black', 'black', 'black', 'white', 'black', 'black', null, null];  // (6,6) と (6,7) に空き
+  board[7] = ['white', 'white', 'white', 'black', 'white', 'white', null, null];  // (7,6) と (7,7) に空き
 
   return board;
 };

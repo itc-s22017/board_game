@@ -19,6 +19,7 @@ const io = new Server(server, {
 });
 
 const othelloRooms = new Map();
+const playersLimit = 4;
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
@@ -32,11 +33,10 @@ io.on('connection', (socket) => {
 
   socket.on('createothelloRoom', (roomId) => {
     if (!othelloRooms.has(roomId)) {
-      // ゲームの状態を初期化してルームに保存
       const newBoard = initializeBoard2();
       othelloRooms.set(roomId, {
         board: newBoard,
-        currentPlayerIndex: 0,  // 0番目のプレイヤーからスタート
+        currentPlayerIndex: 0,  
         players: [],
       });
       console.log(`Room ${roomId} created with board:`, newBoard);
@@ -49,18 +49,25 @@ io.on('connection', (socket) => {
     if (othelloRooms.has(roomId)) {
       const room = othelloRooms.get(roomId);
 
-      // プレイヤーがすでに部屋にいないか確認
       if (!room.players.includes(socket.id)) {
         console.log(room.players.length + ':' + room.players)
-        if (room.players.length < 4) {  // 最大5プレイヤー (仮に2から5に変更)
-          room.players.push(socket.id);  // プレイヤーを追加
+        if (room.players.length < playersLimit) {  
+          room.players.push(socket.id);  
           socket.join(roomId);
 
-          // 現在のルームの状態を送信 (board を含む)
           socket.emit('joinRoomResponse', {
             success: true,
-            board: room.board,  // ルームの盤面を送信
-            currentPlayer: room.players[room.currentPlayerIndex],  // 現在のプレイヤーのID
+            board: room.board, 
+            currentPlayer: room.players[room.currentPlayerIndex], 
+          });
+
+          const stones = countStones(room.board)
+          io.to(roomId).emit('updateGameState', {
+            board: room.board,
+            currentPlayer: room.players[room.currentPlayerIndex], 
+            winner: null,
+            stones,
+            playerCount:room.players.length
           });
 
           console.log(`User ${socket.id} joined room: ${roomId}`);
@@ -80,7 +87,7 @@ io.on('connection', (socket) => {
     const isExist = othelloRooms.has(roomId)
     if (isExist) {
       const room = othelloRooms.get(roomId)
-      if (room.players.length < 2) {
+      if (room.players.length < 4) {
         socket.emit("othelloRoomResponse", { success: true, isMax: false })
       } else {
         socket.emit("othelloRoomResponse", { success: false, isMax: true })

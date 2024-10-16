@@ -1,16 +1,18 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import socket from '../../utils/socket';
-import { BoardState, Player } from '../../utils/gameLogic';
+import { BoardState, Player, num } from '../../utils/gameLogic';
 import WinnerAnnouncement from '../../components/WinnerAnnouncement';
 import Board from '../../components/Board';
+import Waiting from '@/app/components/Waiting';
 
 const ChatPage = ({ params }: { params: { roomId: string } }) => {
   const [board, setBoard] = useState<BoardState>(Array(8).fill(Array(8).fill(null)));
   const [currentPlayer, setCurrentPlayer] = useState<Player>('black');
   const [winner, setWinner] = useState<Player | 'draw' | null>(null);
   const [stones, setStones] = useState<{ black: number, white: number }>({ black: 2, white: 2 });
-  const [socId, setSocId] = useState<string | undefined>(undefined);  // undefined を許容
+  const [socId, setSocId] = useState<string | undefined>(undefined);
+  const [waiting, setWaiting] = useState<number>(0);
 
   const roomId = params.roomId;
 
@@ -25,6 +27,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
       alert(`Player ${player} has passed!`);
     });
 
+    
     socket.on('joinRoomResponse', ({ success, board, currentPlayer }) => {
       if (success) {
         console.log('Received board:', board); // 受け取ったボードをログ出力
@@ -35,12 +38,13 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
       }
     });
 
-    socket.on('updateGameState', ({ board, currentPlayer, winner, stones }) => {
+    socket.on('updateGameState', ({ board, currentPlayer, winner, stones,playerCount }) => {
       console.log('Game state updated:', board); // 更新されたボードをログ出力
       setBoard(board);
       setCurrentPlayer(currentPlayer);
       setWinner(winner);
       setStones(stones);
+      setWaiting(playerCount)
     });
 
     return () => {
@@ -51,9 +55,15 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
     };
   }, [roomId]);
 
+  useEffect(() => { 
+    if (num === waiting) { 
+      setWaiting(0)
+    }
+  },[waiting])
+
   const handleCellClick = (row: number, col: number) => {
     // console.log(currentPlayer === socId)
-    if (socId && socId === currentPlayer) {  // socId が undefined でないことを確認
+    if (socId && socId === currentPlayer) {  
       socket.emit('makeMove', { roomId, row, col });
     } else {
       alert('It is not your turn!');
@@ -82,7 +92,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
         現在のプレイヤー: {socId === currentPlayer ? 'あなた' : currentPlayer?.toUpperCase()}
       </p>
       <p className="text-center text-lg font-bold mt-4">黒: {stones.black}  白: {stones.white}</p>
-
+      {waiting && <Waiting playerCount={waiting} onDismiss={() => { waiting === num ? setWaiting(0) : null}}/>}
       {winner && <WinnerAnnouncement winner={winner} onDismiss={handleWinnerDismiss} />}
     </div>
   );
