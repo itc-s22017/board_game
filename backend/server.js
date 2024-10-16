@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const { initializeBoard, initializeBoard2, makeMove, checkWinner, countStones, canMakeMove } = require('./utils/gameLogic');
+const { initializeBoard, initializeBoard2, makeMove, checkWinner, countStones, canMakeMove, judge } = require('./utils/gameLogic');
 
 const app = express();
 app.use(cors({
@@ -126,6 +126,7 @@ io.on('connection', (socket) => {
 
           const winner = checkWinner(newBoard);
           const stones = countStones(newBoard);
+
 
           if (winner) {
             // 勝者が決まった場合、部屋をリセット
@@ -259,6 +260,21 @@ io.on('connection', (socket) => {
             playerCount: room.players.filter(player => player !== null).length,
             isStarted: room.isStarted,
           });
+          judge.forEach(([a, b]) => {
+            const playersLeft = room.players[a] === null && room.players[b] === null
+            if (playersLeft) {
+              room.board = initializeBoard();
+              room.currentPlayerIndex = 0;
+              io.to(roomId).emit('updateGameState', {
+                board: room.board,
+                currentPlayer: room.players[room.currentPlayerIndex],
+                winner: null,
+                stones: countStones(room.board),
+              });
+              io.to(roomId).emit('reset')
+              return;
+            }
+          })
         }
       }
     });

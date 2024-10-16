@@ -3,6 +3,7 @@
 // type CellValue = 'black' | 'white' | null;
 // type BoardState = CellValue[][];
 // type Player = 'black' | 'white';
+const judge = [[0,2],[1,3]]
 
 // 盤面の初期化を行う関数
 // const initializeBoard2 = () => {
@@ -136,5 +137,6 @@ module.exports = {
   makeMove,
   countStones,
   checkWinner,
-  canMakeMove
+  canMakeMove,
+  judge
 };

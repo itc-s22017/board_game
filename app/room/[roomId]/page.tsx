@@ -5,6 +5,7 @@ import { BoardState, Player, num } from '../../utils/gameLogic';
 import WinnerAnnouncement from '../../components/WinnerAnnouncement';
 import Board from '../../components/Board';
 import Waiting from '@/app/components/Waiting';
+import { useRouter } from 'next/navigation';
 
 const ChatPage = ({ params }: { params: { roomId: string } }) => {
   const [board, setBoard] = useState<BoardState>(Array(8).fill(Array(8).fill(null)));
@@ -14,6 +15,8 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
   const [socId, setSocId] = useState<string | undefined>(undefined);
   const [waiting, setWaiting] = useState<number>(0);
   const [isStarted,setIsStarted] = useState<Boolean>(false);
+
+  const router = useRouter();
 
   const roomId = params.roomId;
 
@@ -27,6 +30,11 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
       console.log(`Player ${player} has passed their turn.`);
       alert(`Player ${player} has passed!`);
     });
+
+    socket.on('reset', () => { 
+      console.log("相手2人が切断しました")
+      router.push('/create/othello')
+    })
     
     socket.on('joinRoomResponse', ({ success, board, currentPlayer }) => {
       if (success) {
