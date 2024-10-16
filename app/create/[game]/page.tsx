@@ -41,14 +41,14 @@ const modalStyle: ModalStyles = {
 
 
 
-const CreateRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game : string }) => {
+const CreateRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: string }) => {
   const router = useRouter();
 
   const roomId = createRandomNumber()
 
   const handleCreateRoom = () => {
     if (roomId.trim() !== "") {
-      socket.emit(`create${game}Room`, roomId,socket.id);
+      socket.emit(`create${game}Room`, roomId, socket.id);
       router.push(`/room/${roomId}`);
       onClose();
     }
@@ -69,7 +69,7 @@ const CreateRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
   );
 };
 
-const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game:string }) => {
+const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: () => void; game: string }) => {
   const [roomId, setRoomId] = useState<string>("");
   const router = useRouter();
   const [joinRoomStatus, setJoinRoomStatus] = useState<string | null>(null);
@@ -89,14 +89,14 @@ const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
         setJoinRoomStatus("failed");
       }
     };
-  
+
     socket.on("othelloRoomResponse", handleJoinRoomResponse);
-  
+
     return () => {
       socket.off("othelloRoomResponse", handleJoinRoomResponse);
     };
   }, [roomId, router, onClose]);
-  
+
 
   const handleJoinRoom = () => {
     if (roomId.trim() !== "") {
@@ -105,7 +105,7 @@ const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
       console.log(socket.id)
     }
   };
-  
+
 
   return (
     <ReactModal
@@ -129,7 +129,7 @@ const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
   );
 };
 
-export default function Home({ params } : { params: { game: string }}) {
+export default function Home({ params }: { params: { game: string } }) {
   const [isCreateRoomModalOpen, setCreateRoomModalOpen] = useState(false);
   const [isJoinRoomModalOpen, setJoinRoomModalOpen] = useState(false);
   const [rooms, setRooms] = useState<string[]>([]);

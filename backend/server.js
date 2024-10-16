@@ -22,13 +22,11 @@ const othelloRooms = new Map();
 const playersLimit = 4;
 
 io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
 
   socket.on('existroom', () => {
     // 現在のルームのリストをクライアントに送信
     const roomList = Array.from(othelloRooms.keys());
     socket.emit('hasroom', roomList);
-    console.log(roomList);
   });
 
   socket.on('createothelloRoom', (roomId) => {
@@ -36,10 +34,10 @@ io.on('connection', (socket) => {
       const newBoard = initializeBoard2();
       othelloRooms.set(roomId, {
         board: newBoard,
-        currentPlayerIndex: 0,  
+        currentPlayerIndex: 0,
         players: [],
+        isStarted: false
       });
-      console.log(`Room ${roomId} created with board:`, newBoard);
     }
     socket.join(roomId);
     // socket.emit('roomCreated', roomId);
@@ -50,33 +48,38 @@ io.on('connection', (socket) => {
       const room = othelloRooms.get(roomId);
 
       if (!room.players.includes(socket.id)) {
-        console.log(room.players.length + ':' + room.players)
-        if (room.players.length < playersLimit) {  
-          room.players.push(socket.id);  
+        const activePlayers = room.players.filter(player => player !== null).length;
+        if (activePlayers < playersLimit) {
+          const findNull = room.players.indexOf(null)
+          if (findNull === -1) {  // nullが見つからなかったら新しく追加
+            room.players.push(socket.id);
+          } else {  // nullが見つかったらその場所にsocket.idを代入
+            room.players[findNull] = socket.id;
+          }
+
           socket.join(roomId);
 
           socket.emit('joinRoomResponse', {
             success: true,
-            board: room.board, 
-            currentPlayer: room.players[room.currentPlayerIndex], 
+            board: room.board,
+            currentPlayer: room.players[room.currentPlayerIndex],
           });
 
-          const stones = countStones(room.board)
+          const stones = countStones(room.board);
+
           io.to(roomId).emit('updateGameState', {
             board: room.board,
-            currentPlayer: room.players[room.currentPlayerIndex], 
+            currentPlayer: room.players[room.currentPlayerIndex],
             winner: null,
             stones,
-            playerCount:room.players.length
+            playerCount: room.players.filter(player => player !== null).length
+
           });
 
-          console.log(`User ${socket.id} joined room: ${roomId}`);
         } else {
           socket.emit('joinRoomResponse', { success: false, isMax: true });
         }
       } else {
-        console.log(`Player ${socket.id} is already in room ${roomId}`);
-        console.log(room.players.length + ':' + room.players)
       }
     } else {
       socket.emit('joinRoomResponse', { success: false });
@@ -87,7 +90,7 @@ io.on('connection', (socket) => {
     const isExist = othelloRooms.has(roomId)
     if (isExist) {
       const room = othelloRooms.get(roomId)
-      if (room.players.length < 4) {
+      if (room.players.length < playersLimit && !room.isStarted) {
         socket.emit("othelloRoomResponse", { success: true, isMax: false })
       } else {
         socket.emit("othelloRoomResponse", { success: false, isMax: true })
@@ -99,9 +102,9 @@ io.on('connection', (socket) => {
 
   socket.on('makeMove', ({ roomId, row, col }) => {
     const room = othelloRooms.get(roomId);
-    if (room.players.length < 2) {
-      console.log('dameeeeeeeeeeeeeeeee')
-      return
+    if (room.players.length < playersLimit) {
+      console.log('dameeeeeeeeeeeeeeeee');
+      return;
     }
     if (room) {
       const { board, currentPlayerIndex, players } = room;
@@ -114,7 +117,10 @@ io.on('connection', (socket) => {
         const newBoard = makeMove(board, row, col, BorW ? 'black' : 'white');
 
         if (newBoard) {
-          // 石を置けた場合、次のプレイヤーへ変更
+          if (!room.isStarted) {
+            room.isStarted = true;
+          }
+
           let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
           room.board = newBoard;
 
@@ -125,22 +131,21 @@ io.on('connection', (socket) => {
             // 勝者が決まった場合、部屋をリセット
             room.board = initializeBoard();
             room.currentPlayerIndex = 0;
-            console.log('Board has been reset:', room.board);  // ← ここで初期化された盤面をログ出力して確認
             io.to(roomId).emit('updateGameState', {
-              board: room.board,  // リセットされた盤面を送信
-              currentPlayer: players[room.currentPlayerIndex],  // 最初のプレイヤーのID
-              winner: winner || null,  // 勝者情報をリセット
-              stones: countStones(room.board),  // 新しい石の数を送信
+              board: room.board,
+              currentPlayer: players[room.currentPlayerIndex],
+              winner: winner || null,
+              stones: countStones(room.board),
             });
             return;
           }
+
           // 次のプレイヤーが石を置けるか確認
           let hasPassed = false;
           while (!canMakeMove(newBoard, nextPlayerIndex % 2 === 0 ? 'black' : 'white')) {
             nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
             hasPassed = true;
             io.to(roomId).emit('playerPassed', { player: currentPlayer });
-
 
             // 全員がパスする場合はゲーム終了
             if (nextPlayerIndex === currentPlayerIndex) {
@@ -150,24 +155,49 @@ io.on('connection', (socket) => {
                 board: newBoard,
                 currentPlayer: null,
                 winner: winner || null,
-                stones
+                stones,
               });
+              return;
             }
           }
 
+          // 現在のプレイヤーがnullの場合、同じ色の次のプレイヤーを探す
+          if (players[nextPlayerIndex] === null) {
+            const currentPlayerColor = nextPlayerIndex % 2 === 0 ? 'black' : 'white';
+            let foundNextPlayer = false;
 
-          room.currentPlayerIndex = nextPlayerIndex;
+            // 次のプレイヤーを探す
+            for (let i = 0; i < players.length; i++) {
+              nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
+              if (players[nextPlayerIndex] !== null) {
+                const playerColor = nextPlayerIndex % 2 === 0 ? 'black' : 'white';
+                // 切断したプレイヤーと異なる色のプレイヤーを探す
+                if (playerColor === currentPlayerColor) {
+                  foundNextPlayer = true;
+                  break;
+                }
+              }
+            }
 
+            // 有効な同じ色のプレイヤーが見つからなかった場合、currentPlayerIndexをnullに設定
+            if (!foundNextPlayer) {
+              room.currentPlayerIndex = null;
+            } else {
+              room.currentPlayerIndex = nextPlayerIndex;
+            }
+          } else {
+            // プレイヤーがnullでない場合は、次のプレイヤーのインデックスを更新
+            room.currentPlayerIndex = nextPlayerIndex;
+          }
 
           // クライアントに更新された状態を送信
           io.to(roomId).emit('updateGameState', {
             board: newBoard,
-            currentPlayer: players[nextPlayerIndex],  // 次のプレイヤーのID
+            currentPlayer: players[room.currentPlayerIndex],
             winner: winner || null,
-            stones
+            stones,
+            isStarted: room.isStarted,
           });
-
-          console.log('161------------------' + board)
 
         } else {
           socket.emit('invalidMove', { message: 'そこに石は置けないよ！' });
@@ -176,29 +206,66 @@ io.on('connection', (socket) => {
     }
   });
 
-
   socket.on('disconnect', () => {
-    console.log('A user disconnected:', socket.id);
     othelloRooms.forEach((room, roomId) => {
       const playerIndex = room.players.indexOf(socket.id);
-      console.log("A room" + room.players)
 
       if (playerIndex !== -1) {
-        // Remove the player from the room
-        room.players.splice(playerIndex, 1);
-        console.log(`Player ${socket.id} removed from room ${roomId}`);
-        console.log(room.players)
+        // プレイヤーを切断
+        room.players[playerIndex] = null;
 
-        // If no players are left in the room, delete the room
-        if (room.players.length === 0) {
+        const activePlayers = room.players.filter(player => player !== null).length;
+        const stones = countStones(room.board);
+        const winner = checkWinner(room.board);
+
+        // ルームが空の場合は削除
+        if (activePlayers === 0) {
           othelloRooms.delete(roomId);
-          console.log(`Room ${roomId} has been deleted because it's empty`);
+        } else {
+          // 現在のプレイヤーの色を決定
+          const currentPlayerIndex = room.currentPlayerIndex;
+          const currentPlayerColor = currentPlayerIndex % 2 === 0 ? 'black' : 'white';
+
+          // 同じ色の次のプレイヤーを探す
+          let nextPlayerIndex = currentPlayerIndex;
+          let foundNextPlayer = false;
+
+          for (let i = 0; i < room.players.length; i++) {
+            nextPlayerIndex = (nextPlayerIndex + 1) % room.players.length;
+            if (room.players[nextPlayerIndex] !== null) {
+              const playerColor = nextPlayerIndex % 2 === 0 ? 'black' : 'white';
+              // 切断したプレイヤーと異なる色のプレイヤーを探す
+              if (playerColor === currentPlayerColor) {
+                foundNextPlayer = true;
+                break;
+              }
+            }
+          }
+
+          // 同じ色の次のプレイヤーが見つかった場合は設定
+          if (foundNextPlayer) {
+            room.currentPlayerIndex = nextPlayerIndex;
+          } else {
+            // 有効なプレイヤーが見つからなかった場合はcurrentPlayerIndexをnullに設定
+            room.currentPlayerIndex = null;
+          }
+
+          // 更新されたゲーム状態を送信
+          io.to(roomId).emit('updateGameState', {
+            board: room.board,
+            currentPlayer: room.players[room.currentPlayerIndex],
+            winner: winner || null,
+            stones,
+            playerCount: room.players.filter(player => player !== null).length,
+            isStarted: room.isStarted,
+          });
         }
       }
     });
   });
+
 });
 
 server.listen(4000, () => {
   console.log('Server is running on port 4000');
-});
+}); 
