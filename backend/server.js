@@ -90,7 +90,7 @@ io.on('connection', (socket) => {
     const isExist = othelloRooms.has(roomId)
     if (isExist) {
       const room = othelloRooms.get(roomId)
-      if (room.players.length < playersLimit && !room.isStarted) {
+      if (room.players.filter(player => player !== null).length < playersLimit && !room.isStarted) {
         socket.emit("othelloRoomResponse", { success: true, isMax: false })
       } else {
         socket.emit("othelloRoomResponse", { success: false, isMax: true })

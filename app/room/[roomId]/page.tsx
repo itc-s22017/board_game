@@ -32,7 +32,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
     });
 
     socket.on('reset', () => { 
-      console.log("相手2人が切断しました")
+      alert("相手2人が切断しました")
       router.push('/create/othello')
     })
     
