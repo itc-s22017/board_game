@@ -19,13 +19,26 @@ const io = new Server(server, {
 });
 
 const othelloRooms = new Map();
+const shinkeiRooms = new Map();
+
+const getGameRooms = game => {
+  switch (game) {
+    case 'othello':
+      return othelloRooms;
+    case 'shinkei':
+      return shinkeiRooms;
+    default:
+      return null;
+  }
+}
+
 const playersLimit = 4;
 
 io.on('connection', (socket) => {
 
-  socket.on('existroom', () => {
-    // 現在のルームのリストをクライアントに送信
-    const roomList = Array.from(othelloRooms.keys());
+  socket.on('existroom', game => {
+    const GAME = getGameRooms(game);
+    const roomList = Array.from(GAME.keys());
     socket.emit('hasroom', roomList);
   });
 
@@ -40,63 +53,79 @@ io.on('connection', (socket) => {
       });
     }
     socket.join(roomId);
-    // socket.emit('roomCreated', roomId);
   });
 
-  socket.on('joinothelloRoom', (roomId) => {
-    if (othelloRooms.has(roomId)) {
-      const room = othelloRooms.get(roomId);
-
+  socket.on('joinRoom', (roomId, game) => {
+    const GAME = getGameRooms(game);
+    if (GAME.has(roomId)) {
+      const room = GAME.get(roomId);
+  
       if (!room.players.includes(socket.id)) {
         const activePlayers = room.players.filter(player => player !== null).length;
+  
         if (activePlayers < playersLimit) {
-          const findNull = room.players.indexOf(null)
-          if (findNull === -1) {  // nullが見つからなかったら新しく追加
+          const findNull = room.players.indexOf(null);
+          if (findNull === -1) {
             room.players.push(socket.id);
-          } else {  // nullが見つかったらその場所にsocket.idを代入
+          } else {
             room.players[findNull] = socket.id;
           }
-
           socket.join(roomId);
-
-          socket.emit('joinRoomResponse', {
-            success: true,
-            board: room.board,
-            currentPlayer: room.players[room.currentPlayerIndex],
-          });
-
-          const stones = countStones(room.board);
-
-          io.to(roomId).emit('updateGameState', {
-            board: room.board,
-            currentPlayer: room.players[room.currentPlayerIndex],
-            winner: null,
-            stones,
-            playerCount: room.players.filter(player => player !== null).length
-
-          });
-
+  
+          // ---------------------- Othelloの処理 ----------------------
+          if (game === 'othello') {
+            socket.emit('joinOthelloResponse', {
+              success: true,
+              board: room.board,
+              currentPlayer: room.players[room.currentPlayerIndex],
+            });
+  
+            const stones = countStones(room.board);
+  
+            io.to(roomId).emit('updateGameState', {
+              board: room.board,
+              currentPlayer: room.players[room.currentPlayerIndex],
+              winner: null,
+              stones,
+              playerCount: room.players.filter(player => player !== null).length,
+            });
+          }
+  
+          // ---------------------- Shinkeiの処理 ----------------------
+          else if (game === 'shinkei') {
+            // ここに神経衰弱の処理を追加
+            socket.emit('joinShinkeiResponse', {
+              success: true,
+              cards: room.cards, // 神経衰弱のカードデータ
+              currentPlayer: room.players[room.currentPlayerIndex],
+            });
+  
+            io.to(roomId).emit('updateShinkeiGameState', {
+              cards: room.cards, // 神経衰弱のカードデータ
+              currentPlayer: room.players[room.currentPlayerIndex],
+              playerCount: room.players.filter(player => player !== null).length,
+            });
+          }
         } else {
           socket.emit('joinRoomResponse', { success: false, isMax: true });
         }
-      } else {
       }
     } else {
       socket.emit('joinRoomResponse', { success: false });
     }
   });
-
-  socket.on('checkothelloRoom', roomId => {
-    const isExist = othelloRooms.has(roomId)
+  
+  socket.on('checkRoom', (roomId, game) => {
+    const GAME = getGameRooms(game);
+    const isExist = GAME.has(roomId)
     if (isExist) {
-      const room = othelloRooms.get(roomId)
+      const room = GAME.get(roomId)
       if (room.players.filter(player => player !== null).length < playersLimit && !room.isStarted) {
-        socket.emit("othelloRoomResponse", { success: true, isMax: false })
+        socket.emit("RoomResponse", { success: true, isMax: false })
       } else {
-        socket.emit("othelloRoomResponse", { success: false, isMax: true })
+        socket.emit("RoomResponse", { success: false, isMax: true })
       }
     }
-
   })
 
 
@@ -129,7 +158,6 @@ io.on('connection', (socket) => {
 
 
           if (winner) {
-            // 勝者が決まった場合、部屋をリセット
             room.board = initializeBoard();
             room.currentPlayerIndex = 0;
             io.to(roomId).emit('updateGameState', {
@@ -141,7 +169,6 @@ io.on('connection', (socket) => {
             return;
           }
 
-          // 次のプレイヤーが石を置けるか確認
           let hasPassed = false;
           while (!canMakeMove(newBoard, nextPlayerIndex % 2 === 0 ? 'black' : 'white')) {
             nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
@@ -208,6 +235,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    // ----------------------Othello----------------------------
     othelloRooms.forEach((room, roomId) => {
       const playerIndex = room.players.indexOf(socket.id);
 
@@ -260,6 +288,7 @@ io.on('connection', (socket) => {
             playerCount: room.players.filter(player => player !== null).length,
             isStarted: room.isStarted,
           });
+
           judge.forEach(([a, b]) => {
             const playersLeft = room.players[a] === null && room.players[b] === null
             if (playersLeft) {
@@ -278,9 +307,50 @@ io.on('connection', (socket) => {
         }
       }
     });
-  });
 
+    // ---------------------------Shinkei----------------------------
+    shinkeiRooms.forEach((room, roomId) => {
+      const playerIndex = room.players.indexOf(socket.id);
+
+      if (playerIndex !== -1) {
+        // プレイヤーを切断
+        room.players[playerIndex] = null;
+
+        const activePlayers = room.players.filter(player => player !== null).length;
+
+        // ルームが空の場合は削除
+        if (activePlayers === 0) {
+          shinkeiRooms.delete(roomId);
+        } else {
+          // 他のロジックが必要であればここに追加
+          // 例: 残りのプレイヤーに状態を通知する
+          io.to(roomId).emit('updateShinkeiGameState', {
+            board: room.board,
+            players: room.players.filter(player => player !== null),
+            isStarted: room.isStarted,
+          });
+        }
+      }
+    });
+  });
+  // --------------------------Shinkei---------------------------------
+  socket.on('createshinkeiRoom', (roomId) => {
+    if (!shinkeiRooms.has(roomId)) {
+      const newCard = initializeBoard();
+      shinkeiRooms.set(roomId, {
+        cards: newCard,
+        currentPlayerIndex: 0,
+        players: [],
+        isStarted: false
+      });
+    }
+    socket.join(roomId);
+  });
 });
+
+
+
+
 
 server.listen(4000, () => {
   console.log('Server is running on port 4000');

@@ -11,7 +11,9 @@ const Home = () => {
       <Button text='オセロ' onClick={() => {
         router.push('/create/othello')
       }}/>
-      <Button text='神経衰弱'/>
+      <Button text='神経衰弱' onClick={() => {
+        router.push('/create/shinkei')
+      }}/>
       <Button text='Othelo'/>
     </div>
   )

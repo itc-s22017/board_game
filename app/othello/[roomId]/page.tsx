@@ -22,9 +22,9 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
   useEffect(() => {
     const currentSocketId = socket.id;
-    setSocId(currentSocketId);  // socket.id を取得
+    setSocId(currentSocketId);  
 
-    socket.emit('joinothelloRoom', roomId);
+    socket.emit('joinRoom', roomId,"othello");
 
     socket.on('playerPassed', ({ player }) => {
       console.log(`Player ${player} has passed their turn.`);
@@ -36,9 +36,9 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
       router.push('/create/othello')
     })
     
-    socket.on('joinRoomResponse', ({ success, board, currentPlayer }) => {
+    socket.on('joinOthelloResponse', ({ success, board, currentPlayer }) => {
       if (success) {
-        console.log('Received board:', board); // 受け取ったボードをログ出力
+        console.log('Received board:', board); 
         setBoard(board);
         setCurrentPlayer(currentPlayer);
       } else {
@@ -47,7 +47,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
     });
 
     socket.on('updateGameState', ({ board, currentPlayer, winner, stones,playerCount,isStarted }) => {
-      console.log('Game state updated:', board); // 更新されたボードをログ出力
+      console.log('Game state updated:', board); 
       setBoard(board);
       setCurrentPlayer(currentPlayer);
       setWinner(winner);
@@ -81,7 +81,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
   
   useEffect(() => {
     socket.on('invalidMove', (message) => {
-      alert(message.message);  // 他のプレイヤーが動いた場合の警告
+      alert(message.message);  
     });
     
     return () => {

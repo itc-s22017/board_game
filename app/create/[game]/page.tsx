@@ -49,7 +49,7 @@ const CreateRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: 
   const handleCreateRoom = () => {
     if (roomId.trim() !== "") {
       socket.emit(`create${game}Room`, roomId, socket.id);
-      router.push(`/room/${roomId}`);
+      router.push(`/${game}/${roomId}`);
       onClose();
     }
   };
@@ -78,7 +78,7 @@ const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
     const handleJoinRoomResponse = (response: { success: boolean, isMax: boolean }) => {
       console.log('Received joinRoomResponse:', response);
       if (response.success) {
-        router.push(`/room/${roomId}`);
+        router.push(`/${game}/${roomId}`);
         onClose();
       } else {
         if (response.isMax) {
@@ -90,10 +90,10 @@ const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
       }
     };
 
-    socket.on("othelloRoomResponse", handleJoinRoomResponse);
+    socket.on("RoomResponse", handleJoinRoomResponse);
 
     return () => {
-      socket.off("othelloRoomResponse", handleJoinRoomResponse);
+      socket.off("RoomResponse", handleJoinRoomResponse);
     };
   }, [roomId, router, onClose]);
 
@@ -101,7 +101,7 @@ const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
   const handleJoinRoom = () => {
     if (roomId.trim() !== "") {
       console.log(`Emitting join${game}Room event with roomId: ${roomId}`);
-      socket.emit(`check${game}Room`, roomId);
+      socket.emit(`checkRoom`, roomId,game);
       console.log(socket.id)
     }
   };
@@ -150,7 +150,7 @@ export default function Home({ params }: { params: { game: string } }) {
       console.log('Disconnected with ID:', socket.id);
     });
 
-    socket.emit('existroom');
+    socket.emit('existroom',game);
     socket.on('hasroom', handleHasRoom);
 
     return () => {
@@ -167,7 +167,6 @@ export default function Home({ params }: { params: { game: string } }) {
       <CreateRoomModal isOpen={isCreateRoomModalOpen} onClose={() => setCreateRoomModalOpen(false)} game={game} />
       <JoinRoomModal isOpen={isJoinRoomModalOpen} onClose={() => setJoinRoomModalOpen(false)} game={game} />
 
-      {/* ルームリストの表示 */}
       <div className="mt-4">
         <h2 className="text-lg font-bold">Available Rooms</h2>
         <ul>
