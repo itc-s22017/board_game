@@ -1,9 +1,43 @@
-// 型定義 (TypeScriptからJavaScriptへ移行するため、型はコメントに変更)
-
 // type CellValue = 'black' | 'white' | null;
 // type BoardState = CellValue[][];
 // type Player = 'black' | 'white';
-const judge = [[0,2],[1,3]]
+const judge = [[0, 2], [1, 3]];
+const images = [
+  {
+    num: 1,
+    img: '/img/IMG_7250.JPG',
+    isMatched:false
+  },
+  {
+    num: 2,
+    img: '/img/IMG_7253.JPG'
+  },
+  {
+    num: 3,
+    img: '/img/IMG_7254.JPG'
+  },
+  {
+    num: 4,
+    img: '/img/IMG_7254.JPG'
+  },
+  {
+    num: 5,
+    img: '/img/IMG_7255.png'
+  },
+  {
+    num: 6,
+    img: '/img/yamuneko.png'
+  },
+]
+
+const initializeCard = () => {
+  const shuffledImages = [...images, ...images]
+    .map((item, index) => ({ ...item, id: index + 1 }))
+    .sort((a, b) => 0.5 - Math.random());
+
+  return shuffledImages
+}
+
 
 // 盤面の初期化を行う関数
 // const initializeBoard2 = () => {
@@ -32,8 +66,8 @@ const initializeBoard2 = () => {
   board[3] = ['white', 'white', 'white', 'black', 'white', 'white', 'white', 'black'];
   board[4] = ['black', 'black', 'black', 'white', 'black', 'black', 'black', 'white'];
   board[5] = ['white', 'white', 'white', 'black', 'white', 'white', null, null];
-  board[6] = ['black', 'black', 'black', 'white', 'black', 'black', null, null];  
-  board[7] = ['white', 'white', 'white', 'black', 'white', 'white', null, null]; 
+  board[6] = ['black', 'black', 'black', 'white', 'black', 'black', null, null];
+  board[7] = ['white', 'white', 'white', 'black', 'white', 'white', null, null];
 
   return board;
 };
@@ -50,35 +84,37 @@ const initializeBoard = () => {
 };
 
 
+
+
 const makeMove = (board, row, col, player) => {
   if (board[row][col] !== null) {
-    return null; 
+    return null;
   }
 
-  let canFlip = false; 
+  let canFlip = false;
   const directions = [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [-1, 1], [1, -1], [1, 1]];
   const newBoard = board.map(row => [...row]);
 
   directions.forEach(([dx, dy]) => {
     let x = row + dx;
     let y = col + dy;
-    let toFlip = []; 
+    let toFlip = [];
     while (x >= 0 && x < 8 && y >= 0 && y < 8 && board[x][y] === (player === 'black' ? 'white' : 'black')) {
-      toFlip.push([x, y]); 
-      x += dx; 
-      y += dy; 
+      toFlip.push([x, y]);
+      x += dx;
+      y += dy;
     }
 
     if (x >= 0 && x < 8 && y >= 0 && y < 8 && board[x][y] === player && toFlip.length > 0) {
-      canFlip = true; 
+      canFlip = true;
       toFlip.forEach(([fx, fy]) => {
-        newBoard[fx][fy] = player; 
+        newBoard[fx][fy] = player;
       });
     }
   });
 
   if (!canFlip) {
-    return null; 
+    return null;
   }
 
   newBoard[row][col] = player;
@@ -99,24 +135,24 @@ const countStones = (board) => {
 const checkWinner = (board) => {
   const { black, white } = countStones(board);
 
-  if (black + white === 64 || black === 0 || white === 0) { 
+  if (black + white === 64 || black === 0 || white === 0) {
     if (black > white) return 'black';
     if (white > black) return 'white';
     return 'draw';
   }
 
-  return null; 
+  return null;
 };
 
 const canMakeMove = (board, player) => {
   for (let row = 0; row < 8; row++) {
     for (let col = 0; col < 8; col++) {
       if (makeMove(board, row, col, player)) {
-        return true; 
+        return true;
       }
     }
   }
-  return false; 
+  return false;
 };
 
 module.exports = {
@@ -126,5 +162,6 @@ module.exports = {
   countStones,
   checkWinner,
   canMakeMove,
-  judge
+  judge,
+  initializeCard
 };

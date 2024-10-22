@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const { initializeBoard, initializeBoard2, makeMove, checkWinner, countStones, canMakeMove, judge } = require('./utils/gameLogic');
+const { initializeBoard, initializeBoard2, makeMove, checkWinner, countStones, canMakeMove, judge, initializeCard } = require('./utils/gameLogic');
 
 const app = express();
 app.use(cors({
@@ -336,12 +336,12 @@ io.on('connection', (socket) => {
   // --------------------------Shinkei---------------------------------
   socket.on('createshinkeiRoom', (roomId) => {
     if (!shinkeiRooms.has(roomId)) {
-      const newCard = initializeBoard();
+      const newCard = initializeCard();
       shinkeiRooms.set(roomId, {
         cards: newCard,
         currentPlayerIndex: 0,
         players: [],
-        isStarted: false
+        isStarted: false,
       });
     }
     socket.join(roomId);
