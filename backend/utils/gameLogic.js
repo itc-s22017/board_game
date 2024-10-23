@@ -1,6 +1,3 @@
-// type CellValue = 'black' | 'white' | null;
-// type BoardState = CellValue[][];
-// type Player = 'black' | 'white';
 const judge = [[0, 2], [1, 3]];
 const images = [
   {
@@ -10,23 +7,28 @@ const images = [
   },
   {
     num: 2,
-    img: '/img/IMG_7253.JPG'
+    img: '/img/IMG_7253.JPG',
+    isMatched:false
   },
   {
     num: 3,
-    img: '/img/IMG_7254.JPG'
+    img: '/img/IMG_7254.JPG',
+    isMatched:false
   },
   {
     num: 4,
-    img: '/img/IMG_7254.JPG'
+    img: '/img/bikkuri_2.png',
+    isMatched:false
   },
   {
     num: 5,
-    img: '/img/IMG_7255.png'
+    img: '/img/IMG_7255.png',
+    isMatched:false
   },
   {
     num: 6,
-    img: '/img/yamuneko.png'
+    img: '/img/yamuneko.png',
+    isMatched:false
   },
 ]
 

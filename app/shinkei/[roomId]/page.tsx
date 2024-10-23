@@ -2,30 +2,61 @@
 import React, { useEffect, useState } from 'react'
 import socket from '@/app/utils/socket';
 import Card from '@/app/components/Card';
+import Waiting from '@/app/components/Waiting';
+import { num, Player } from '../../utils/gameLogic';
+import WinnerAnnouncement from '@/app/components/WinnerAnnouncement';
+
 
 type CardType = {
   num: number;
   img: string;
   id: number;
+  isMatched: boolean;
 };
 
 
-const page = ({ params }: { params: { roomId: string }}) => {
+const page = ({ params }: { params: { roomId: string } }) => {
 
   const roomId = params.roomId;
 
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [card, setCard] = useState<CardType[]>([]);
+  const [currentPlayer, setCurrentPlayer] = useState<string>('');
+  const [waiting, setWaiting] = useState<number>(0);
+  const [isStarted, setIsStarted] = useState<Boolean>(false);
+  const [winner, setWinner] = useState<Player | 'draw' | null>(null);
+
 
   const handleCardClick = (index: number) => {
-    setFlippedCards((prev) => [...prev, index]);
+
+    if (flippedCards.includes(index) || flippedCards.length === 2) return;
+
+    setFlippedCards((prev) => {
+      const newFlippedCards = [...prev, index];
+
+      socket.emit('flipCard', { index, roomId });
+
+      return newFlippedCards;
+    });
   };
 
   useEffect(() => {
+
     if (flippedCards.length === 2) {
-      setTimeout(() => {
+      const firstCard = card[flippedCards[0]];
+      const secondCard = card[flippedCards[1]];
+
+      if (firstCard.num === secondCard.num) {
+        firstCard.isMatched = true;
+        secondCard.isMatched = true;
+        console.log(card)
         setFlippedCards([]);
-      }, 1000);
+      } else {
+        // 一致しない場合の処理
+        setTimeout(() => {
+          setFlippedCards([]);
+        }, 1000);
+      }
     }
   }, [flippedCards]);
 
@@ -40,24 +71,51 @@ const page = ({ params }: { params: { roomId: string }}) => {
       }
     });
 
-    socket.on('updateShinkeiGameState', ({ cards, currentPlayer, playerCount }) => {
+    socket.on('updateShinkeiGameState', ({ cards, currentPlayer, playerCount, winner }) => {
       console.log('Game state updated:', cards);
-      setCard(cards)
-
+      setCard(cards);
+      setCurrentPlayer(currentPlayer);
+      setWaiting(playerCount);
+      setIsStarted(isStarted);
+      setWinner(winner);
     });
 
+    return () => {
+      socket.off('joinShinkeiResponse');
+      socket.off('disconnect');
+      socket.off('updateShinkeiGameState');
+    };
   }, [roomId])
+
+  const handleWinnerDismiss = () => {
+    setWinner(null);
+  };
+
+  useEffect(() => { 
+    if (num === waiting) { 
+      setWaiting(0)
+    }
+  },[waiting])
+
   return (
-    <div className="grid grid-cols-4">
-      {card.map((card, index) => (
-        <Card
-          key={index}
-          img={card.img}
-          isFlipped={flippedCards.includes(index)}
-          onClick={() => handleCardClick(index)}
-        />
-      ))}
-    </div>
+    <>
+      <div className="grid grid-cols-4">
+        {card.map((card, index) => (
+          <Card
+            key={index}
+            img={card.img}
+            isFlipped={flippedCards.includes(index) || card.isMatched}
+            onClick={() => handleCardClick(index)}
+          />
+        ))}
+        <p className="text-center text-lg font-bold mt-4">
+          現在のプレイヤー: {socket.id === currentPlayer ? 'あなた' : currentPlayer?.toUpperCase()}
+        </p>
+      </div>
+      {waiting && !isStarted && <Waiting playerCount={waiting} onDismiss={() => {}} />}
+      {winner && <WinnerAnnouncement winner={winner} onDismiss={handleWinnerDismiss} />}
+
+    </>
   );
 }
 

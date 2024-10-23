@@ -101,9 +101,12 @@ io.on('connection', (socket) => {
             });
   
             io.to(roomId).emit('updateShinkeiGameState', {
-              cards: room.cards, // 神経衰弱のカードデータ
+              cards: room.cards,
               currentPlayer: room.players[room.currentPlayerIndex],
               playerCount: room.players.filter(player => player !== null).length,
+              isStarted: room.isStarted,
+              winner:room.winner,
+
             });
           }
         } else {
@@ -325,8 +328,9 @@ io.on('connection', (socket) => {
           // 他のロジックが必要であればここに追加
           // 例: 残りのプレイヤーに状態を通知する
           io.to(roomId).emit('updateShinkeiGameState', {
-            board: room.board,
-            players: room.players.filter(player => player !== null),
+            cards: room.cards,
+            playerCount: room.players.filter(player => player !== null).length,
+            currentPlayer:room.players[room.currentPlayerIndex],
             isStarted: room.isStarted,
           });
         }
@@ -341,6 +345,7 @@ io.on('connection', (socket) => {
         cards: newCard,
         currentPlayerIndex: 0,
         players: [],
+        winner: null,
         isStarted: false,
       });
     }
