@@ -1,7 +1,7 @@
 export type CellValue = 'black' | 'white' | null;
 export type BoardState = CellValue[][];
 export type Player = 'black' | 'white';
-export const num = 3;
+export const num = 2;
 
 // // 盤面の初期化を行う関数
 // export const initializeBoard = (): BoardState => {

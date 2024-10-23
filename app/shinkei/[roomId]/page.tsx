@@ -28,20 +28,14 @@ const page = ({ params }: { params: { roomId: string } }) => {
 
 
   const handleCardClick = (index: number) => {
+    if (socket.id === currentPlayer && !card[index].isMatched) {
+      if (flippedCards.includes(index) || flippedCards.length === 2) return;
+      socket.emit('flipCard',index, roomId);
+    }
 
-    if (flippedCards.includes(index) || flippedCards.length === 2) return;
-
-    setFlippedCards((prev) => {
-      const newFlippedCards = [...prev, index];
-
-      socket.emit('flipCard', { index, roomId });
-
-      return newFlippedCards;
-    });
   };
 
   useEffect(() => {
-
     if (flippedCards.length === 2) {
       const firstCard = card[flippedCards[0]];
       const secondCard = card[flippedCards[1]];
@@ -49,7 +43,6 @@ const page = ({ params }: { params: { roomId: string } }) => {
       if (firstCard.num === secondCard.num) {
         firstCard.isMatched = true;
         secondCard.isMatched = true;
-        console.log(card)
         setFlippedCards([]);
       } else {
         // 一致しない場合の処理
@@ -71,13 +64,17 @@ const page = ({ params }: { params: { roomId: string } }) => {
       }
     });
 
-    socket.on('updateShinkeiGameState', ({ cards, currentPlayer, playerCount, winner }) => {
+    socket.on('updateShinkeiGameState', ({ cards, currentPlayer, playerCount, winner, flippedCardIndex, isStarted }) => {
       console.log('Game state updated:', cards);
       setCard(cards);
       setCurrentPlayer(currentPlayer);
       setWaiting(playerCount);
       setIsStarted(isStarted);
       setWinner(winner);
+      setFlippedCards(prev => {
+        const newFlippedCards = flippedCardIndex;
+        return newFlippedCards
+      })
     });
 
     return () => {
@@ -91,11 +88,11 @@ const page = ({ params }: { params: { roomId: string } }) => {
     setWinner(null);
   };
 
-  useEffect(() => { 
-    if (num === waiting) { 
+  useEffect(() => {
+    if (num === waiting) {
       setWaiting(0)
     }
-  },[waiting])
+  }, [waiting])
 
   return (
     <>
@@ -112,7 +109,7 @@ const page = ({ params }: { params: { roomId: string } }) => {
           現在のプレイヤー: {socket.id === currentPlayer ? 'あなた' : currentPlayer?.toUpperCase()}
         </p>
       </div>
-      {waiting && !isStarted && <Waiting playerCount={waiting} onDismiss={() => {}} />}
+      {waiting && !isStarted && <Waiting playerCount={waiting} onDismiss={() => waiting === num ? setWaiting(0) : null} />}
       {winner && <WinnerAnnouncement winner={winner} onDismiss={handleWinnerDismiss} />}
 
     </>

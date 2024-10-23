@@ -1,3 +1,6 @@
+// type CellValue = 'black' | 'white' | null;
+// type BoardState = CellValue[][];
+// type Player = 'black' | 'white';
 const judge = [[0, 2], [1, 3]];
 const images = [
   {

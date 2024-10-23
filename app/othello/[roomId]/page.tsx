@@ -60,7 +60,6 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
       socket.off('joinRoomResponse');
       socket.off('updateGameState');
       socket.off('playerPassed');
-
     };
   }, [roomId]);
 
