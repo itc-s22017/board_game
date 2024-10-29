@@ -6,32 +6,32 @@ const images = [
   {
     num: 1,
     img: '/img/IMG_7250.JPG',
-    isMatched:false
+    isMatched: true
   },
   {
     num: 2,
     img: '/img/IMG_7253.JPG',
-    isMatched:false
+    isMatched: true
   },
   {
     num: 3,
     img: '/img/IMG_7254.JPG',
-    isMatched:false
+    isMatched: true
   },
   {
     num: 4,
     img: '/img/bikkuri_2.png',
-    isMatched:false
+    isMatched: true
   },
   {
     num: 5,
     img: '/img/IMG_7255.png',
-    isMatched:false
+    isMatched: true
   },
   {
     num: 6,
     img: '/img/yamuneko.png',
-    isMatched:false
+    isMatched: false
   },
 ]
 
@@ -42,6 +42,10 @@ const initializeCard = () => {
 
   return shuffledImages
 }
+
+const checkShinkeiWinner = (room) => {
+  return room.cards.every((element) => element.isMatched);
+};
 
 
 // 盤面の初期化を行う関数
@@ -168,5 +172,7 @@ module.exports = {
   checkWinner,
   canMakeMove,
   judge,
-  initializeCard
+  initializeCard,
+  images,
+  checkShinkeiWinner
 };

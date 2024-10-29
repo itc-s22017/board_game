@@ -2,7 +2,11 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const { initializeBoard, initializeBoard2, makeMove, checkWinner, countStones, canMakeMove, judge, initializeCard } = require('./utils/gameLogic');
+const {
+  initializeBoard, initializeBoard2, makeMove,
+  checkWinner, countStones, canMakeMove,
+  judge, initializeCard, images, checkShinkeiWinner
+} = require('./utils/gameLogic');
 
 const app = express();
 app.use(cors({
@@ -316,8 +320,33 @@ io.on('connection', (socket) => {
       const playerIndex = room.players.indexOf(socket.id);
 
       if (playerIndex !== -1) {
-        // プレイヤーを切断
-        room.players[playerIndex] = null;
+        room.players = room.players.map(player => player === room.players[playerIndex] ? null : player);
+
+
+        if (room.isStarted) {
+          const isEvenTeam = playerIndex % 2 === 0;
+          const partnerIndex = isEvenTeam ? (playerIndex === 0 ? 2 : 0) : (playerIndex === 1 ? 3 : 1);
+
+          const partnerPlayer = room.players[partnerIndex];
+
+          if (partnerPlayer !== null) {
+            room.players[playerIndex] = partnerPlayer;
+            console.log('room players: ' + room.players);
+          } else {
+            console.log('room players: ' + room.players);
+            console.log('２人いなくなったよお')
+          }
+        } else {
+          room.players[playerIndex] = null;
+        }
+
+        judge.forEach(([a, b]) => {
+          const playersLeft = room.players[a] === null && room.players[b] === null
+          if (playersLeft) {
+            io.to(roomId).emit('reset')
+            return;
+          }
+        })
 
         const activePlayers = room.players.filter(player => player !== null).length;
 
@@ -332,6 +361,7 @@ io.on('connection', (socket) => {
             playerCount: room.players.filter(player => player !== null).length,
             currentPlayer: room.players[room.currentPlayerIndex],
             isStarted: room.isStarted,
+            flippedCardIndex: room.flippedCardIndex
           });
         }
       }
@@ -347,7 +377,9 @@ io.on('connection', (socket) => {
         players: [],
         winner: null,
         isStarted: false,
-        flippedCardIndex: []
+        flippedCardIndex: [],
+        red: 0,
+        blue: 0
       });
     }
     socket.join(roomId);
@@ -368,27 +400,59 @@ io.on('connection', (socket) => {
         room.isStarted = true;
       }
 
-      if (room.flippedCardIndex.length === 2) {
+      if (room.flippedCardIndex.length === 1) {
+        room.flippedCardIndex.push(index);
         const firstCard = room.cards[room.flippedCardIndex[0]];
         const secondCard = room.cards[room.flippedCardIndex[1]];
+
         if (firstCard.num === secondCard.num) {
-          console.log("HIH")
           firstCard.isMatched = true;
           secondCard.isMatched = true;
+          currentPlayerIndex % 2 === 0 ? room.red += 1 : room.blue += 1
         }
+
+        if (checkShinkeiWinner(room)) {
+          const winner = room.red > room.blue ? 'red' : room.red < room.blue ? 'blue' : 'draw';
+          room.cards = initializeCard();
+          room.currentPlayerIndex = 0;
+          room.flippedCardIndex = [];
+
+          io.to(roomId).emit('updateShinkeiGameState', {
+            cards: room.cards,
+            currentPlayer: room.players[room.currentPlayerIndex],
+            winner: winner || null,
+            flippedCardIndex: room.flippedCardIndex
+          });
+          return;
+        }
+        const nextPlayerIndex = room.currentPlayerIndex + 1
+        room.currentPlayerIndex = nextPlayerIndex % playersLimit
+
+        // room.currentPlayerIndex += 1
+        io.to(roomId).emit('updateShinkeiGameState', {
+          cards: room.cards,
+          playerCount: room.players.filter((player) => player !== null).length,
+          currentPlayer: room.players[room.currentPlayerIndex],
+          isStarted: room.isStarted,
+          flippedCardIndex: room.flippedCardIndex,
+          winner: null
+        });
+        console.log(`index:${room.flippedCardIndex.length}`)
         room.flippedCardIndex = [];
+
+      } else {
+
+        room.flippedCardIndex.push(index);
+        io.to(roomId).emit('updateShinkeiGameState', {
+          cards: room.cards,
+          playerCount: room.players.filter((player) => player !== null).length,
+          currentPlayer: room.players[room.currentPlayerIndex],
+          isStarted: room.isStarted,
+          flippedCardIndex: room.flippedCardIndex,
+          winner: null
+        });
+        console.log(`index:${room.flippedCardIndex.length}`)
       }
-
-      room.flippedCardIndex.push(index);
-
-      io.to(roomId).emit('updateShinkeiGameState', {
-        cards: room.cards,
-        playerCount: room.players.filter((player) => player !== null).length,
-        currentPlayer: room.players[room.currentPlayerIndex],
-        isStarted: room.isStarted,
-        flippedCardIndex: room.flippedCardIndex,
-        winner:null
-      });
 
       // Check if the game is over (all cards matched)
       // const allMatched = room.cards.every((card) => card.isMatched);

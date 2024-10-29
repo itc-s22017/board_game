@@ -4,6 +4,7 @@ import socket from '@/app/utils/socket';
 import Card from '@/app/components/Card';
 import Waiting from '@/app/components/Waiting';
 import { num, Player } from '../../utils/gameLogic';
+import { useRouter } from 'next/navigation';
 import WinnerAnnouncement from '@/app/components/WinnerAnnouncement';
 
 
@@ -26,6 +27,8 @@ const page = ({ params }: { params: { roomId: string } }) => {
   const [isStarted, setIsStarted] = useState<Boolean>(false);
   const [winner, setWinner] = useState<Player | 'draw' | null>(null);
 
+  const router = useRouter()
+
 
   const handleCardClick = (index: number) => {
     if (socket.id === currentPlayer && !card[index].isMatched) {
@@ -39,19 +42,20 @@ const page = ({ params }: { params: { roomId: string } }) => {
     if (flippedCards.length === 2) {
       const firstCard = card[flippedCards[0]];
       const secondCard = card[flippedCards[1]];
-
+  
       if (firstCard.num === secondCard.num) {
-        firstCard.isMatched = true;
-        secondCard.isMatched = true;
-        setFlippedCards([]);
+        setTimeout(() => { 
+          setFlippedCards([]);
+        },300)
       } else {
         // 一致しない場合の処理
+        console.log("wrong")
         setTimeout(() => {
           setFlippedCards([]);
         }, 1000);
       }
     }
-  }, [flippedCards]);
+  }, [flippedCards, card]);
 
   useEffect(() => {
     socket.emit('joinRoom', roomId, "shinkei");
@@ -63,6 +67,11 @@ const page = ({ params }: { params: { roomId: string } }) => {
         console.log('Failed to join room');
       }
     });
+
+    socket.on('reset', () => { 
+      alert("相手2人が切断しました")
+      router.push('/create/shinkei')
+    })
 
     socket.on('updateShinkeiGameState', ({ cards, currentPlayer, playerCount, winner, flippedCardIndex, isStarted }) => {
       console.log('Game state updated:', cards);
@@ -80,6 +89,7 @@ const page = ({ params }: { params: { roomId: string } }) => {
     return () => {
       socket.off('joinShinkeiResponse');
       socket.off('disconnect');
+      socket.off('reset');
       socket.off('updateShinkeiGameState');
     };
   }, [roomId])

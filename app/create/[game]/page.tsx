@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import ReactModal from "react-modal";
 import Button from "../../components/Button";
 import socket from "../../utils/socket";
@@ -74,6 +74,9 @@ const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
   const router = useRouter();
   const [joinRoomStatus, setJoinRoomStatus] = useState<string | null>(null);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
+
   useEffect(() => {
     const handleJoinRoomResponse = (response: { success: boolean, isMax: boolean }) => {
       console.log('Received joinRoomResponse:', response);
@@ -97,11 +100,10 @@ const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
     };
   }, [roomId, router, onClose]);
 
-
   const handleJoinRoom = () => {
     if (roomId.trim() !== "") {
       console.log(`Emitting join${game}Room event with roomId: ${roomId}`);
-      socket.emit(`checkRoom`, roomId,game);
+      socket.emit(`checkRoom`, roomId, game);
       console.log(socket.id)
     }
   };
@@ -121,6 +123,7 @@ const JoinRoomModal = ({ isOpen, onClose, game }: { isOpen: boolean; onClose: ()
           placeholder="Enter room ID"
           value={roomId}
           onChange={(e) => setRoomId(e.target.value)}
+          ref={inputRef}
         />
         <Button text="Join Room" onClick={handleJoinRoom} />
         <Button text="Close" onClick={onClose} />
@@ -150,7 +153,7 @@ export default function Home({ params }: { params: { game: string } }) {
       console.log('Disconnected with ID:', socket.id);
     });
 
-    socket.emit('existroom',game);
+    socket.emit('existroom', game);
     socket.on('hasroom', handleHasRoom);
 
     return () => {
