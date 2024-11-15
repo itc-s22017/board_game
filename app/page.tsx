@@ -14,7 +14,9 @@ const Home = () => {
       <Button text='神経衰弱' onClick={() => {
         router.push('/create/shinkei')
       }}/>
-      <Button text='Othelo'/>
+      <Button text='Hit&Blow' onClick={() => {
+        router.push('create/hitandblow')
+      }} />
     </div>
   )
 }

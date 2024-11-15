@@ -5,7 +5,8 @@ const cors = require('cors');
 const {
   initializeBoard, initializeBoard2, makeMove,
   checkWinner, countStones, canMakeMove,
-  judge, initializeCard, images, checkShinkeiWinner
+  judge, initializeCard, images, checkShinkeiWinner,
+  createRandomNumber
 } = require('./utils/gameLogic');
 
 const app = express();
@@ -24,6 +25,7 @@ const io = new Server(server, {
 
 const othelloRooms = new Map();
 const shinkeiRooms = new Map();
+const hitandblowRooms = new Map();
 
 const getGameRooms = game => {
   switch (game) {
@@ -31,12 +33,14 @@ const getGameRooms = game => {
       return othelloRooms;
     case 'shinkei':
       return shinkeiRooms;
+    case 'hitandblow':
+      return hitandblowRooms;
     default:
       return null;
   }
 }
 
-const playersLimit = 2;
+const playersLimit = 4;
 
 io.on('connection', (socket) => {
 
@@ -63,7 +67,7 @@ io.on('connection', (socket) => {
     const GAME = getGameRooms(game);
     if (GAME.has(roomId)) {
       const room = GAME.get(roomId);
-
+      console.log(room)
       if (!room.players.includes(socket.id)) {
         const activePlayers = room.players.filter(player => player !== null).length;
 
@@ -97,13 +101,11 @@ io.on('connection', (socket) => {
 
           // ---------------------- Shinkeiの処理 ----------------------
           else if (game === 'shinkei') {
-            // ここに神経衰弱の処理を追加
             socket.emit('joinShinkeiResponse', {
               success: true,
-              cards: room.cards, // 神経衰弱のカードデータ
+              cards: room.cards,
               currentPlayer: room.players[room.currentPlayerIndex],
             });
-
             io.to(roomId).emit('updateShinkeiGameState', {
               cards: room.cards,
               currentPlayer: room.players[room.currentPlayerIndex],
@@ -111,6 +113,49 @@ io.on('connection', (socket) => {
               isStarted: room.isStarted,
               winner: room.winner,
               flippedCardIndex: room.flippedCardIndex
+            });
+            // ---------------- hit&blowの処理 -------------------------
+          } else if (game === 'hitandblow') {
+            const isIncludes = room.players.indexOf(socket.id);
+            // const team = isIncludes % 2 === 0 ? room.blue : room.red;
+            socket.emit('joinHitAndBlowResponse', {
+              success: true,
+              currentPlayer: room.players[room.currentPlayerIndex],
+            });
+
+            if (isIncludes % 2 === 0) {
+              io.to(room.players[0]).emit('updateHitAndBlowGameState', {
+                currentPlayer: room.players[room.currentPlayerIndex],
+                playerCount: room.players.filter(player => player !== null).length,
+                isStarted: room.isStarted,
+                winner: room.winner,
+                number: room.blue
+              });
+              io.to(room.players[2]).emit('updateHitAndBlowGameState', {
+                currentPlayer: room.players[room.currentPlayerIndex],
+                playerCount: room.players.filter(player => player !== null).length,
+                isStarted: room.isStarted,
+                winner: room.winner,
+                number: room.blue
+              });
+            } else {
+              io.to(room.players[1]).emit('updateHitAndBlowGameState', {
+                currentPlayer: room.players[room.currentPlayerIndex],
+                playerCount: room.players.filter(player => player !== null).length,
+                isStarted: room.isStarted,
+                winner: room.winner,
+                number: room.red
+              });
+              io.to(room.players[3]).emit('updateHitAndBlowGameState', {
+                currentPlayer: room.players[room.currentPlayerIndex],
+                playerCount: room.players.filter(player => player !== null).length,
+                isStarted: room.isStarted,
+                winner: room.winner,
+                number: room.red
+              });
+            }
+            io.to(roomId).emit('updatePlayerCount', {
+              playerCount: room.players.filter(player => player !== null).length
             });
           }
         } else {
@@ -157,7 +202,8 @@ io.on('connection', (socket) => {
             room.isStarted = true;
           }
 
-          let nextPlayerIndex = (currentPlayerIndex + 1) % players.length;
+          const nextPlayerIndex = room.currentPlayerIndex + 1
+          room.currentPlayerIndex = nextPlayerIndex % playersLimit
           room.board = newBoard;
 
           const winner = checkWinner(newBoard);
@@ -196,35 +242,6 @@ io.on('connection', (socket) => {
             }
           }
 
-          // 現在のプレイヤーがnullの場合、同じ色の次のプレイヤーを探す
-          if (players[nextPlayerIndex] === null) {
-            const currentPlayerColor = nextPlayerIndex % 2 === 0 ? 'black' : 'white';
-            let foundNextPlayer = false;
-
-            // 次のプレイヤーを探す
-            for (let i = 0; i < players.length; i++) {
-              nextPlayerIndex = (nextPlayerIndex + 1) % players.length;
-              if (players[nextPlayerIndex] !== null) {
-                const playerColor = nextPlayerIndex % 2 === 0 ? 'black' : 'white';
-                // 切断したプレイヤーと異なる色のプレイヤーを探す
-                if (playerColor === currentPlayerColor) {
-                  foundNextPlayer = true;
-                  break;
-                }
-              }
-            }
-
-            // 有効な同じ色のプレイヤーが見つからなかった場合、currentPlayerIndexをnullに設定
-            if (!foundNextPlayer) {
-              room.currentPlayerIndex = null;
-            } else {
-              room.currentPlayerIndex = nextPlayerIndex;
-            }
-          } else {
-            // プレイヤーがnullでない場合は、次のプレイヤーのインデックスを更新
-            room.currentPlayerIndex = nextPlayerIndex;
-          }
-
           // クライアントに更新された状態を送信
           io.to(roomId).emit('updateGameState', {
             board: newBoard,
@@ -247,9 +264,27 @@ io.on('connection', (socket) => {
       const playerIndex = room.players.indexOf(socket.id);
 
       if (playerIndex !== -1) {
-        // プレイヤーを切断
-        room.players[playerIndex] = null;
+        room.players = room.players.map(player => player === room.players[playerIndex] ? null : player);
 
+
+        if (room.isStarted) {
+          const isEvenTeam = playerIndex % 2 === 0;
+          const partnerIndex = isEvenTeam ? (playerIndex === 0 ? 2 : 0) : (playerIndex === 1 ? 3 : 1);
+
+          const partnerPlayer = room.players[partnerIndex];
+
+          if (partnerPlayer !== null) {
+            room.players[playerIndex] = partnerPlayer;
+            room.flippedCardIndex = []
+            console.log('room players: ' + room.players);
+          } else {
+            console.log('room players: ' + room.players);
+            console.log('２人いなくなったよお')
+          }
+        } else {
+          room.players[playerIndex] = null;
+          room.flippedCardIndex = []
+        }
         const activePlayers = room.players.filter(player => player !== null).length;
         const stones = countStones(room.board);
         const winner = checkWinner(room.board);
@@ -258,35 +293,6 @@ io.on('connection', (socket) => {
         if (activePlayers === 0) {
           othelloRooms.delete(roomId);
         } else {
-          // 現在のプレイヤーの色を決定
-          const currentPlayerIndex = room.currentPlayerIndex;
-          const currentPlayerColor = currentPlayerIndex % 2 === 0 ? 'black' : 'white';
-
-          // 同じ色の次のプレイヤーを探す
-          let nextPlayerIndex = currentPlayerIndex;
-          let foundNextPlayer = false;
-
-          for (let i = 0; i < room.players.length; i++) {
-            nextPlayerIndex = (nextPlayerIndex + 1) % room.players.length;
-            if (room.players[nextPlayerIndex] !== null) {
-              const playerColor = nextPlayerIndex % 2 === 0 ? 'black' : 'white';
-              // 切断したプレイヤーと異なる色のプレイヤーを探す
-              if (playerColor === currentPlayerColor) {
-                foundNextPlayer = true;
-                break;
-              }
-            }
-          }
-
-          // 同じ色の次のプレイヤーが見つかった場合は設定
-          if (foundNextPlayer) {
-            room.currentPlayerIndex = nextPlayerIndex;
-          } else {
-            // 有効なプレイヤーが見つからなかった場合はcurrentPlayerIndexをnullに設定
-            room.currentPlayerIndex = null;
-          }
-
-          // 更新されたゲーム状態を送信
           io.to(roomId).emit('updateGameState', {
             board: room.board,
             currentPlayer: room.players[room.currentPlayerIndex],
@@ -294,6 +300,7 @@ io.on('connection', (socket) => {
             stones,
             playerCount: room.players.filter(player => player !== null).length,
             isStarted: room.isStarted,
+            flippedCardIndex: room.flippedCardIndex
           });
 
           judge.forEach(([a, b]) => {
@@ -354,8 +361,6 @@ io.on('connection', (socket) => {
         if (activePlayers === 0) {
           shinkeiRooms.delete(roomId);
         } else {
-          // 他のロジックが必要であればここに追加
-          // 例: 残りのプレイヤーに状態を通知する
           io.to(roomId).emit('updateShinkeiGameState', {
             cards: room.cards,
             playerCount: room.players.filter(player => player !== null).length,
@@ -462,6 +467,21 @@ io.on('connection', (socket) => {
       // }
     }
   });
+  socket.on('createhitandblowRoom', roomId => {
+    if (!hitandblowRooms.has(roomId)) {
+      const red = createRandomNumber();
+      const blue = createRandomNumber();
+      hitandblowRooms.set(roomId, {
+        currentPlayerIndex: 0,
+        players: [],
+        winner: null,
+        isStarted: false,
+        red,
+        blue,
+      });
+    }
+    socket.join(roomId);
+  })
 });
 
 

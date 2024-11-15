@@ -1,32 +1,46 @@
 // type CellValue = 'black' | 'white' | null;
 // type BoardState = CellValue[][];
 // type Player = 'black' | 'white';
+const createRandomNumber = () => {
+  let num = '';
+
+  while (num.length < 3) {
+    const randomDigit = Math.floor(Math.random() * 10);
+    if (!num.includes(randomDigit)) {
+      num += randomDigit;
+    }
+  }
+
+  return num;
+}
+
+
 const judge = [[0, 2], [1, 3]];
 const images = [
   {
     num: 1,
     img: '/img/IMG_7250.JPG',
-    isMatched: true
+    isMatched: false
   },
   {
     num: 2,
     img: '/img/IMG_7253.JPG',
-    isMatched: true
+    isMatched: false
   },
   {
     num: 3,
     img: '/img/IMG_7254.JPG',
-    isMatched: true
+    isMatched: false
   },
   {
     num: 4,
     img: '/img/bikkuri_2.png',
-    isMatched: true
+    isMatched: false
   },
   {
     num: 5,
     img: '/img/IMG_7255.png',
-    isMatched: true
+    isMatched: false
   },
   {
     num: 6,
@@ -174,5 +188,6 @@ module.exports = {
   judge,
   initializeCard,
   images,
-  checkShinkeiWinner
+  checkShinkeiWinner,
+  createRandomNumber
 };
