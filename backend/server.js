@@ -6,7 +6,7 @@ const {
   initializeBoard, initializeBoard2, makeMove,
   checkWinner, countStones, canMakeMove,
   judge, initializeCard, images, checkShinkeiWinner,
-  createRandomNumber
+  createRandomNumber, calculateHitAndBlow
 } = require('./utils/gameLogic');
 
 const app = express();
@@ -40,7 +40,7 @@ const getGameRooms = game => {
   }
 }
 
-const playersLimit = 4;
+const playersLimit = 2;
 
 io.on('connection', (socket) => {
 
@@ -122,6 +122,7 @@ io.on('connection', (socket) => {
               success: true,
               currentPlayer: room.players[room.currentPlayerIndex],
             });
+            console.log('room:' + room.players[room.currentPlayerIndex])
 
             if (isIncludes % 2 === 0) {
               io.to(room.players[0]).emit('updateHitAndBlowGameState', {
@@ -467,6 +468,7 @@ io.on('connection', (socket) => {
       // }
     }
   });
+
   socket.on('createhitandblowRoom', roomId => {
     if (!hitandblowRooms.has(roomId)) {
       const red = createRandomNumber();
@@ -474,6 +476,10 @@ io.on('connection', (socket) => {
       hitandblowRooms.set(roomId, {
         currentPlayerIndex: 0,
         players: [],
+        guesses: {
+          teamA: [],
+          teamB: [],
+        },
         winner: null,
         isStarted: false,
         red,
@@ -481,6 +487,39 @@ io.on('connection', (socket) => {
       });
     }
     socket.join(roomId);
+  })
+
+  socket.on('makeGuess', (roomId, guess) => {
+    const room = hitandblowRooms.get(roomId);
+    const { currentPlayerIndex, players, red, blue, guesses } = room;
+    if (!room || room.players.length < playersLimit || socket.id !== players[currentPlayerIndex]) {
+      console.log('Not enough players or room does not exist.');
+      return;
+    }
+    const isTeamA = players.indexOf(socket.id) % 2 !== 0 // true => teamA
+    if (!room.isStarted) {
+      room.isStarted = true;
+    }
+    const correctAnswer = isTeamA ? blue : red
+    const { hit, blow } = calculateHitAndBlow(guess, correctAnswer);
+    if (!isTeamA) {
+      guesses.teamA.push({ guess, hit, blow })
+    } else {
+      guesses.teamB.push({ guess, hit, blow })
+    }
+    room.currentPlayerIndex = (currentPlayerIndex + 1) % room.players.length;
+    console.log(guesses)
+
+    io.to(roomId).emit('updateHitAndBlowGameState', {
+      currentPlayer: room.players[room.currentPlayerIndex],
+      playerCount: room.players.filter(player => player !== null).length,
+      isStarted: room.isStarted,
+      winner: room.winner,
+      guesses: {
+        teamA: guesses.teamA,
+        teamB: guesses.teamB,
+      },
+    });
   })
 });
 

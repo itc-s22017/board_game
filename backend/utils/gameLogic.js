@@ -1,6 +1,34 @@
 // type CellValue = 'black' | 'white' | null;
 // type BoardState = CellValue[][];
 // type Player = 'black' | 'white';
+
+const calculateHitAndBlow = (guess, correctAnswer) => {
+  let hit = 0;
+  let blow = 0;
+
+  const unmatchedGuess = [];
+  const unmatchedAnswer = [];
+
+  for (let i = 0; i < guess.length; i++) {
+    if (guess[i] === correctAnswer[i]) {
+      hit++;
+    } else {
+      unmatchedGuess.push(guess[i]);
+      unmatchedAnswer.push(correctAnswer[i]);
+    }
+  }
+
+  unmatchedGuess.forEach(digit => {
+    const index = unmatchedAnswer.indexOf(digit);
+    if (index !== -1) {
+      blow++;
+      unmatchedAnswer.splice(index, 1); 
+    }
+  });
+
+  return { hit, blow };
+};
+
 const createRandomNumber = () => {
   let num = '';
 
@@ -189,5 +217,6 @@ module.exports = {
   initializeCard,
   images,
   checkShinkeiWinner,
-  createRandomNumber
+  createRandomNumber,
+  calculateHitAndBlow
 };

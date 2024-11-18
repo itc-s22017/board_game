@@ -14,6 +14,12 @@ type CardHandProps = {
     isImage?: boolean;
 };
 
+type Guess = {
+    guess: string;
+    hit: number;
+    blow: number;
+};
+
 const CardHand: React.FC<CardHandProps> = ({ title, cards, isImage = false }) => {
     return (
         <div className="flex flex-col items-center space-y-2 mb-4">
@@ -37,18 +43,22 @@ const CardHand: React.FC<CardHandProps> = ({ title, cards, isImage = false }) =>
 };
 const ChatPage = ({ params }: { params: { roomId: string } }) => {
     const [number, setNumber] = useState<number>(0);
-    const [currentPlayer, setCurrentPlayer] = useState<Player>('black');
+    const [currentPlayer, setCurrentPlayer] = useState<string>('');
     const [winner, setWinner] = useState<Player | 'draw' | null>(null);
     const [socId, setSocId] = useState<string | undefined>(undefined);
     const [waiting, setWaiting] = useState<number>(0);
     const [isStarted, setIsStarted] = useState<Boolean>(false);
+    const [teamGuesses, setTeamGuesses] = useState<Guess[]>([]);
+    const [opponentGuesses, setOpponentGuesses] = useState<Guess[]>([]);
+    const [guess, setGuess] = useState<string>('');
+
 
     const router = useRouter();
-
     const roomId = params.roomId;
 
     const playerCards = number ? number.toString().split('') : [];
     const opponentCardImage = trumpUra.src;
+    const isYourTurn = socket.id === currentPlayer
 
     useEffect(() => {
         const currentSocketId = socket.id;
@@ -66,7 +76,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
             router.push('/create/othello')
         })
 
-        socket.on('joinHitAndBlowResponse', ({ success, number, currentPlayer }) => {
+        socket.on('joinHitAndBlowResponse', ({ success, currentPlayer }) => {
             if (success) {
                 setCurrentPlayer(currentPlayer);
             } else {
@@ -78,15 +88,16 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
             setWaiting(playerCount)
         })
 
-        socket.on('updateHitAndBlowGameState', ({ number, currentPlayer, winner, playerCount, isStarted }) => {
+        socket.on('updateHitAndBlowGameState', ({ number, currentPlayer, winner, playerCount, isStarted, guesses }) => {
             number !== undefined ? setNumber(number) : setNumber(prev => prev);
-            currentPlayer !== undefined ? setCurrentPlayer(currentPlayer) : setCurrentPlayer(currentPlayer);
-            winner !== undefined ? setWinner(winner) : setWinner(winner);
+            currentPlayer !== undefined ? setCurrentPlayer(currentPlayer) : setCurrentPlayer(prev => prev);
+            winner !== undefined ? setWinner(winner) : setWinner(prev => prev);
             playerCount !== undefined ? setWaiting(playerCount) : setWaiting(prev => prev);
             isStarted !== undefined ? setIsStarted(isStarted) : setIsStarted(prev => prev);
+            guesses !== undefined ? setOpponentGuesses(guesses.teamA) : setOpponentGuesses(prev => prev);
+            guesses !== undefined ? setTeamGuesses(guesses.teamB) : setOpponentGuesses(prev => prev);
+
         });
-
-
         return () => {
             socket.off('joinRoomResponse');
             socket.off('updateHitAndBlowGameState');
@@ -101,12 +112,10 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
         }
     }, [waiting])
 
-    const handleCellClick = (row: number, col: number) => {
-        // console.log(currentPlayer === socId)
-        if (socId && socId === currentPlayer) {
-            socket.emit('makeMove', { roomId, row, col });
-        } else {
-            alert('It is not your turn!');
+    const handleGuessSubmit = () => {
+        if (guess.length === 3) {
+            socket.emit('makeGuess', roomId, guess);
+            setGuess('')
         }
     };
 
@@ -125,6 +134,15 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
         setWinner(null);
     };
 
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+
+        if (/^\d{0,3}$/.test(value)) {
+            setGuess(value);
+        }
+    };
+
+
     return (
         <div className="container mx-auto p-4">
             <div className="container mx-auto p-4 flex flex-col justify-between min-h-screen">
@@ -138,15 +156,35 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
                             type="text"
                             placeholder="3桁の数値を入力"
                             className="p-2 border border-gray-300 rounded-lg text-center text-2xl"
-                        />
+                            disabled={!isYourTurn}
+                            value={guess}
+                            onChange={handleChange} />
                         <button
                             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg"
+                            disabled={!isYourTurn}
+                            onClick={handleGuessSubmit}
                         >
                             予想を送信
                         </button>
+
                     </div>
                 </div>
-
+                <p>
+                    Opponent:
+                    {opponentGuesses.map((guessData, index) => (
+                        <span key={index}>
+                            Guess: {guessData.guess}, Hit: {guessData.hit}, Blow: {guessData.blow} |
+                        </span>
+                    ))}
+                </p>
+                <p>
+                    YourTeam:
+                    {teamGuesses.map((guessData, index) => (
+                        <span key={index}>
+                            Guess: {guessData.guess}, Hit: {guessData.hit}, Blow: {guessData.blow} |
+                        </span>
+                    ))}
+                </p>
                 <div className="flex flex-col items-center">
                     <CardHand title="あなたのチームのカード" cards={playerCards} />
                 </div>
