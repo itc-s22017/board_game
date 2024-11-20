@@ -144,8 +144,6 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
             if (isStarted !== undefined) setIsStarted(isStarted);
 
             if (guesses) {
-                console.log('AAA')
-                console.log(yourTeam)
                 if (yourTeam === 'blue') {
                     setTeamGuesses(guesses.teamA);
                     setOpponentGuesses(guesses.teamB);
@@ -163,19 +161,11 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
             }
         });
 
-        socket.on('playerPassed', ({ player }) => {
-            console.log(`Player ${player} has passed their turn.`);
-            alert(`Player ${player} has passed!`);
-        });
-
-        socket.on('reset', () => {
-            alert("相手2人が切断しました");
-            router.push('/create/othello');
-        });
-
-        socket.on('invalidMove', (message) => {
-            alert(message.message);
-        });
+        socket.on('reset', () => { 
+            router.push('/create')
+            alert("相手2人が切断しました")
+          })
+          
 
         return () => {
             socket.off('joinHitAndBlowResponse');
@@ -233,6 +223,9 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
                 <div className="flex flex-col items-center">
                     <div className="flex flex-col items-center mt-4">
+                        <p className="text-center text-lg font-bold mt-4">
+                            現在のプレイヤー: {socId === currentPlayer ? 'あなた' : currentPlayer?.toUpperCase()}
+                        </p>
                         <input
                             type="text"
                             placeholder="3桁の数値を入力"
@@ -250,22 +243,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
                     </div>
                 </div>
-                {/* <p>
-                    Opponent:
-                    {opponentGuesses.map((guessData, index) => (
-                        <span key={index}>
-                            Guess: {guessData.guess}, Hit: {guessData.hit}, Blow: {guessData.blow} |
-                        </span>
-                    ))}
-                </p>
-                <p>
-                    YourTeam:
-                    {teamGuesses.map((guessData, index) => (
-                        <span key={index}>
-                            Guess: {guessData.guess}, Hit: {guessData.hit}, Blow: {guessData.blow} |
-                        </span>
-                    ))}
-                </p> */}
+
                 <GuessTable ownTeam={teamGuesses} opponentTeam={opponentGuesses} />;
 
                 <div className="flex flex-col items-center">
