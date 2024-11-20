@@ -40,7 +40,7 @@ const getGameRooms = game => {
   }
 }
 
-const playersLimit = 2;
+const playersLimit = 4;
 
 io.on('connection', (socket) => {
 
@@ -130,14 +130,16 @@ io.on('connection', (socket) => {
                 playerCount: room.players.filter(player => player !== null).length,
                 isStarted: room.isStarted,
                 winner: room.winner,
-                number: room.blue
+                number: room.blue,
+                team:'blue'
               });
               io.to(room.players[2]).emit('updateHitAndBlowGameState', {
                 currentPlayer: room.players[room.currentPlayerIndex],
                 playerCount: room.players.filter(player => player !== null).length,
                 isStarted: room.isStarted,
                 winner: room.winner,
-                number: room.blue
+                number: room.blue,
+                team:'blue'
               });
             } else {
               io.to(room.players[1]).emit('updateHitAndBlowGameState', {
@@ -145,14 +147,16 @@ io.on('connection', (socket) => {
                 playerCount: room.players.filter(player => player !== null).length,
                 isStarted: room.isStarted,
                 winner: room.winner,
-                number: room.red
+                number: room.red,
+                team:'red'
               });
               io.to(room.players[3]).emit('updateHitAndBlowGameState', {
                 currentPlayer: room.players[room.currentPlayerIndex],
                 playerCount: room.players.filter(player => player !== null).length,
                 isStarted: room.isStarted,
                 winner: room.winner,
-                number: room.red
+                number: room.red,
+                team:'red'
               });
             }
             io.to(roomId).emit('updatePlayerCount', {
@@ -192,7 +196,6 @@ io.on('connection', (socket) => {
       const { board, currentPlayerIndex, players } = room;
       const currentPlayer = players[currentPlayerIndex];
 
-      // プレイヤーが順番かどうか確認
       if (socket.id === currentPlayer) {
         const cp = room.players.indexOf(currentPlayer);
         const BorW = cp % 2 === 0;
@@ -508,18 +511,31 @@ io.on('connection', (socket) => {
       guesses.teamB.push({ guess, hit, blow })
     }
     room.currentPlayerIndex = (currentPlayerIndex + 1) % room.players.length;
-    console.log(guesses)
 
-    io.to(roomId).emit('updateHitAndBlowGameState', {
-      currentPlayer: room.players[room.currentPlayerIndex],
-      playerCount: room.players.filter(player => player !== null).length,
-      isStarted: room.isStarted,
-      winner: room.winner,
-      guesses: {
-        teamA: guesses.teamA,
-        teamB: guesses.teamB,
-      },
-    });
+    if ( hit === 3 & blow === 0) { 
+      room.winner = isTeamA ? 'red' : 'blue';
+      io.to(roomId).emit('updateHitAndBlowGameState', {
+        currentPlayer: room.players[room.currentPlayerIndex],
+        playerCount: room.players.filter(player => player !== null).length,
+        isStarted: room.isStarted,
+        winner: room.winner,
+        guesses: {
+          teamA: guesses.teamA,
+          teamB: guesses.teamB,
+        },
+      });
+    }else {
+      io.to(roomId).emit('updateHitAndBlowGameState', {
+        currentPlayer: room.players[room.currentPlayerIndex],
+        playerCount: room.players.filter(player => player !== null).length,
+        isStarted: room.isStarted,
+        winner: room.winner,
+        guesses: {
+          teamA: guesses.teamA,
+          teamB: guesses.teamB,
+        },
+      });
+    }
   })
 });
 
