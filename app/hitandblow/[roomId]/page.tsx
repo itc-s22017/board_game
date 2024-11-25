@@ -6,6 +6,8 @@ import WinnerAnnouncement2 from '@/app/components/WinnerAnnouncement';
 import Waiting from '@/app/components/Waiting';
 import { useRouter } from 'next/navigation';
 import trumpUra from '../../img/trump_ura.jpg';
+import avatar from '../../img/avatar.png';
+
 
 
 type CardHandProps = {
@@ -29,10 +31,10 @@ type Props = {
 
 const GuessTable: React.FC<Props> = ({ ownTeam, opponentTeam }) => {
     return (
-        <div className="p-4 bg-gray-100">
+        <div className="p-14 bg-gray-100">
             <h2 className="text-lg font-bold mb-4 text-center">予想結果</h2>
-            <div className="flex justify-around">
-                <div className="w-1/2">
+            <div className="flex justify-around w-full">
+                <div className="w-full">
                     <h3 className="text-center text-blue-600 font-semibold mb-4">味方チーム</h3>
                     <div className="space-y-2">
                         {ownTeam.map((data, index) => (
@@ -49,7 +51,7 @@ const GuessTable: React.FC<Props> = ({ ownTeam, opponentTeam }) => {
                     </div>
                 </div>
 
-                <div className="w-1/2">
+                <div className="w-full">
                     <h3 className="text-center text-red-600 font-semibold mb-4">敵チーム</h3>
                     <div className="space-y-2">
                         {opponentTeam.map((data, index) => (
@@ -91,6 +93,25 @@ const CardHand: React.FC<CardHandProps> = ({ title, cards, isImage = false }) =>
         </div>
     );
 };
+
+const Avatar: React.FC<{ playerId: string | null }> = ({ playerId }) => {
+    return (
+        <div
+            className={`w-16 h-16 rounded-full flex items-center justify-center border-2 shadow-lg ${playerId
+                ? 'bg-blue-200 border-blue-400'
+                : 'bg-gray-400 border-gray-600'
+                }`}
+        >
+            <img
+                src={avatar.src as string}
+                alt="Avatar"
+                className={`w-full h-full object-cover rounded-full ${playerId ? '' : 'opacity-50' // プレイヤーがいない場合は透明度を下げる
+                    }`}
+            />
+        </div>
+    );
+};
+
 const ChatPage = ({ params }: { params: { roomId: string } }) => {
     const [number, setNumber] = useState<number>(0);
     const [currentPlayer, setCurrentPlayer] = useState<string>('');
@@ -102,11 +123,16 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
     const [opponentGuesses, setOpponentGuesses] = useState<Guess[]>([]);
     const [guess, setGuess] = useState<string>('');
     const [yourTeam, setYourTeam] = useState<string>('');
+    const [players, setPlayers] = useState<(string | null)[]>([]);
+    const [leftTop, setLeftTop] = useState<string | null>(null);
+    const [rightTop, setRightTop] = useState<string | null>(null);
+    const [leftBottom, setLeftBottom] = useState<string | null>(null);
+    const [rightBottom, setRightBottom] = useState<string | null>(null);
 
     const router = useRouter();
     const roomId = params.roomId;
 
-    const playerCards = number ? number.toString().split('') : [];
+    const playerCards = number && number !== 0 ? number.toString().split('') : [];
     const opponentCardImage = trumpUra.src;
     const isYourTurn = socket.id === currentPlayer
 
@@ -127,8 +153,6 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
         socket.on('updatePlayerCount', ({ playerCount }) => {
             setWaiting(playerCount);
         });
-
-
 
         socket.on('updateHitAndBlowGameState', ({ number, currentPlayer, winner, playerCount, isStarted, guesses, team }) => {
 
@@ -161,11 +185,16 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
             }
         });
 
-        socket.on('reset', () => { 
+        socket.on('reset', () => {
             router.push('/create')
             alert("相手2人が切断しました")
-          })
-          
+        });
+
+        socket.on('updatePlayers', (updatedPlayers) => {
+            setPlayers(updatedPlayers);
+        });
+
+        console.log(players)
 
         return () => {
             socket.off('joinHitAndBlowResponse');
@@ -174,7 +203,48 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
             socket.off('updatePlayerCount');
             socket.off('invalidMove');
         };
-    }, [roomId, yourTeam, waiting]);
+    }, [roomId, yourTeam, waiting, players]);
+
+    useEffect(() => {
+        if (players.length > 0 && socId) {
+            const myIndex = players.findIndex((id) => id === socId);
+            const isEven = myIndex % 2 == 0
+
+            if (isEven) {
+                // 偶数インデックス（0、2）の場合
+                if (myIndex === 0) {
+                    // 自分がインデックス0の場合
+                    setLeftBottom(players[myIndex] || null);  // 左下は自分
+                    setRightBottom(players[2] || null); // 右下にはインデックス2のプレイヤー
+                } else if (myIndex === 2) {
+                    // 自分がインデックス2の場合
+                    setLeftBottom(players[myIndex] || null);  // 左下は自分
+                    setRightBottom(players[0] || null); // 右下にはインデックス0のプレイヤー
+                }
+
+                // 左上と右上の配置
+                setLeftTop(players[1] || null);  // 左上にはインデックス1のプレイヤー
+                setRightTop(players[3] || null); // 右上にはインデックス3のプレイヤー
+            } else {
+                // 奇数インデックス（1、3）の場合
+                if (myIndex === 1) {
+                    // 自分がインデックス1の場合
+                    setLeftBottom(players[myIndex] || null); // 左下は自分
+                    setRightBottom(players[3] || null); // 右下にはインデックス3のプレイヤー
+                } else if (myIndex === 3) {
+                    // 自分がインデックス3の場合
+                    setLeftBottom(players[myIndex] || null); // 左下は自分
+                    setRightBottom(players[1] || null); // 右下にはインデックス1のプレイヤー
+                }
+
+                // 左上と右上の配置
+                setLeftTop(players[0] || null); // 左上にはインデックス0のプレイヤー
+                setRightTop(players[2] || null); // 右上にはインデックス2のプレイヤー
+            }
+
+
+        }
+    }, [players, socId]);
 
 
     useEffect(() => {
@@ -214,14 +284,34 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
     };
 
 
+
+
     return (
         <div className="container mx-auto p-4">
-            <div className="container mx-auto p-4 flex flex-col justify-between min-h-screen">
-                <div className="flex flex-col items-center">
-                    <CardHand title="敵チームのカード" cards={[opponentCardImage, opponentCardImage, opponentCardImage]} isImage />
+            {/* Game UI container with relative positioning */}
+            <div className="relative w-full h-screen flex flex-col justify-between min-h-screen">
+                {/* Avatars in the four corners */}
+                <div className="absolute top-4 left-4">
+                    <Avatar playerId={leftTop} />
                 </div>
 
-                <div className="flex flex-col items-center">
+                <div className="absolute top-4 right-4">
+                    <Avatar playerId={rightTop} />
+                </div>
+
+                <div className="absolute bottom-4 left-4">
+                    <Avatar playerId={leftBottom} />
+                </div>
+
+                <div className="absolute bottom-4 right-4">
+                    <Avatar playerId={rightBottom} />
+                </div>
+
+                {/* Game UI in the center */}
+                <div className="flex flex-col items-center mt-20">
+                    <CardHand title="敵チームのカード" cards={[opponentCardImage, opponentCardImage, opponentCardImage]} isImage />
+                </div>
+                <div className="flex flex-col items-center mt-4">
                     <div className="flex flex-col items-center mt-4">
                         <p className="text-center text-lg font-bold mt-4">
                             現在のプレイヤー: {socId === currentPlayer ? 'あなた' : currentPlayer?.toUpperCase()}
@@ -232,7 +322,8 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
                             className="p-2 border border-gray-300 rounded-lg text-center text-2xl"
                             disabled={!isYourTurn}
                             value={guess}
-                            onChange={handleChange} />
+                            onChange={handleChange}
+                        />
                         <button
                             className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-lg"
                             disabled={!isYourTurn}
@@ -240,21 +331,20 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
                         >
                             予想を送信
                         </button>
-
                     </div>
                 </div>
 
-                <GuessTable ownTeam={teamGuesses} opponentTeam={opponentGuesses} />;
+                <GuessTable ownTeam={teamGuesses} opponentTeam={opponentGuesses} />
 
                 <div className="flex flex-col items-center">
                     <CardHand title="あなたのチームのカード" cards={playerCards} />
                 </div>
             </div>
+
+            {/* Waiting and Winner Announcement components */}
             {waiting && !isStarted && <Waiting playerCount={waiting} onDismiss={() => { waiting === num ? setWaiting(0) : null }} />}
             {winner && <WinnerAnnouncement2 winner={winner !== yourTeam ? '敵チーム' : 'あなたのチーム'} onDismiss={handleWinnerDismiss} />}
         </div>
-
     );
 };
-
 export default ChatPage;

@@ -94,7 +94,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-64">
       <Board board={board} onCellClick={handleCellClick} />
       <p className="text-center text-lg font-bold mt-4">
         現在のプレイヤー: {socId === currentPlayer ? 'あなた' : currentPlayer?.toUpperCase()}

@@ -162,6 +162,7 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('updatePlayerCount', {
               playerCount: room.players.filter(player => player !== null).length
             });
+            io.to(roomId).emit('updatePlayers', room.players);
           }
         } else {
           socket.emit('joinRoomResponse', { success: false, isMax: true });
@@ -408,6 +409,7 @@ io.on('connection', (socket) => {
             return;
           }
         })
+        io.to(roomId).emit('updatePlayers', room.players);
 
         const activePlayers = room.players.filter(player => player !== null).length;
 
@@ -589,7 +591,7 @@ io.on('connection', (socket) => {
       // });
       players.forEach((player, index) => {
         if (player !== null) {
-          const isPlayerTeamA = index % 2 !== 0; // チームAかどうかを判定
+          const isPlayerTeamA = index % 2 !== 0;
           const teamData = isPlayerTeamA
             ? room.red
             : room.blue
