@@ -75,6 +75,31 @@ const images = [
     img: '/img/yamuneko.png',
     isMatched: false
   },
+  {
+    num:7,
+    img:'/img/neko.jpg',
+    isMatched:false
+  },
+  {
+    num:8,
+    img:'/img/neko2.jpeg',
+    isMatched:false
+  },
+  {
+    num:9,
+    img:'/img/neko3.jpeg',
+    isMatched:false
+  },
+  {
+    num:10,
+    img:'/img/neko4.jpeg',
+    isMatched:false
+  },
+  {
+    num:11,
+    img:'/img/neko5.jpeg',
+    isMatched:false
+  },
 ]
 
 const initializeCard = () => {

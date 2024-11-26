@@ -6,8 +6,7 @@ import WinnerAnnouncement2 from '@/app/components/WinnerAnnouncement';
 import Waiting from '@/app/components/Waiting';
 import { useRouter } from 'next/navigation';
 import trumpUra from '../../img/trump_ura.jpg';
-import avatar from '../../img/avatar.png';
-
+import { Avatar } from '@/app/components/Avatar';
 
 
 type CardHandProps = {
@@ -26,8 +25,6 @@ type Props = {
     ownTeam: Guess[];
     opponentTeam: Guess[];
 };
-
-
 
 const GuessTable: React.FC<Props> = ({ ownTeam, opponentTeam }) => {
     return (
@@ -94,23 +91,6 @@ const CardHand: React.FC<CardHandProps> = ({ title, cards, isImage = false }) =>
     );
 };
 
-const Avatar: React.FC<{ playerId: string | null }> = ({ playerId }) => {
-    return (
-        <div
-            className={`w-16 h-16 rounded-full flex items-center justify-center border-2 shadow-lg ${playerId
-                ? 'bg-blue-200 border-blue-400'
-                : 'bg-gray-400 border-gray-600'
-                }`}
-        >
-            <img
-                src={avatar.src as string}
-                alt="Avatar"
-                className={`w-full h-full object-cover rounded-full ${playerId ? '' : 'opacity-50' // プレイヤーがいない場合は透明度を下げる
-                    }`}
-            />
-        </div>
-    );
-};
 
 const ChatPage = ({ params }: { params: { roomId: string } }) => {
     const [number, setNumber] = useState<number>(0);
@@ -186,8 +166,8 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
         });
 
         socket.on('reset', () => {
-            router.push('/create')
             alert("相手2人が切断しました")
+            router.push('/c')
         });
 
         socket.on('updatePlayers', (updatedPlayers) => {
@@ -207,39 +187,32 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
     useEffect(() => {
         if (players.length > 0 && socId) {
-            const myIndex = players.findIndex((id) => id === socId);
+            const p = Array.from(new Set(players));  
+            const myIndex = p.findIndex((id) => id === socId);
             const isEven = myIndex % 2 == 0
 
             if (isEven) {
-                // 偶数インデックス（0、2）の場合
                 if (myIndex === 0) {
-                    // 自分がインデックス0の場合
-                    setLeftBottom(players[myIndex] || null);  // 左下は自分
-                    setRightBottom(players[2] || null); // 右下にはインデックス2のプレイヤー
+                    setLeftBottom(p[myIndex] || null); 
+                    setRightBottom(p[2] || null);
                 } else if (myIndex === 2) {
-                    // 自分がインデックス2の場合
-                    setLeftBottom(players[myIndex] || null);  // 左下は自分
-                    setRightBottom(players[0] || null); // 右下にはインデックス0のプレイヤー
+                    setLeftBottom(p[myIndex] || null);  
+                    setRightBottom(p[0] || null);
                 }
 
-                // 左上と右上の配置
-                setLeftTop(players[1] || null);  // 左上にはインデックス1のプレイヤー
-                setRightTop(players[3] || null); // 右上にはインデックス3のプレイヤー
+                setLeftTop(p[1] || null);  
+                setRightTop(p[3] || null); 
             } else {
-                // 奇数インデックス（1、3）の場合
                 if (myIndex === 1) {
-                    // 自分がインデックス1の場合
-                    setLeftBottom(players[myIndex] || null); // 左下は自分
-                    setRightBottom(players[3] || null); // 右下にはインデックス3のプレイヤー
+                    setLeftBottom(p[myIndex] || null); 
+                    setRightBottom(p[3] || null); 
                 } else if (myIndex === 3) {
-                    // 自分がインデックス3の場合
-                    setLeftBottom(players[myIndex] || null); // 左下は自分
-                    setRightBottom(players[1] || null); // 右下にはインデックス1のプレイヤー
+                    setLeftBottom(p[myIndex] || null); 
+                    setRightBottom(p[1] || null); 
                 }
 
-                // 左上と右上の配置
-                setLeftTop(players[0] || null); // 左上にはインデックス0のプレイヤー
-                setRightTop(players[2] || null); // 右上にはインデックス2のプレイヤー
+                setLeftTop(p[0] || null);
+                setRightTop(p[2] || null);
             }
 
 
@@ -288,9 +261,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
     return (
         <div className="container mx-auto p-4">
-            {/* Game UI container with relative positioning */}
             <div className="relative w-full h-screen flex flex-col justify-between min-h-screen">
-                {/* Avatars in the four corners */}
                 <div className="absolute top-4 left-4">
                     <Avatar playerId={leftTop} />
                 </div>
@@ -307,7 +278,6 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
                     <Avatar playerId={rightBottom} />
                 </div>
 
-                {/* Game UI in the center */}
                 <div className="flex flex-col items-center mt-20">
                     <CardHand title="敵チームのカード" cards={[opponentCardImage, opponentCardImage, opponentCardImage]} isImage />
                 </div>
@@ -341,7 +311,6 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
                 </div>
             </div>
 
-            {/* Waiting and Winner Announcement components */}
             {waiting && !isStarted && <Waiting playerCount={waiting} onDismiss={() => { waiting === num ? setWaiting(0) : null }} />}
             {winner && <WinnerAnnouncement2 winner={winner !== yourTeam ? '敵チーム' : 'あなたのチーム'} onDismiss={handleWinnerDismiss} />}
         </div>

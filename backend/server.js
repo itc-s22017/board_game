@@ -114,6 +114,7 @@ io.on('connection', (socket) => {
               winner: room.winner,
               flippedCardIndex: room.flippedCardIndex
             });
+            io.to(roomId).emit('updatePlayers', room.players);
             // ---------------- hit&blowの処理 -------------------------
           } else if (game === 'hitandblow') {
             const isIncludes = room.players.indexOf(socket.id);
@@ -359,7 +360,8 @@ io.on('connection', (socket) => {
             return;
           }
         })
-
+        
+        io.to(roomId).emit('updatePlayers', room.players);
         const activePlayers = room.players.filter(player => player !== null).length;
 
         // ルームが空の場合は削除
