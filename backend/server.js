@@ -44,6 +44,11 @@ const playersLimit = 4;
 
 io.on('connection', (socket) => {
 
+  socket.on('sendBubbleMessage', ({ roomId, message, playerId }) => {
+    io.to(roomId).emit('receiveBubbleMessage', { message, playerId });
+    console.log(playerId)
+  });
+
   socket.on('existroom', game => {
     const GAME = getGameRooms(game);
     const roomList = Array.from(GAME.keys());
@@ -97,6 +102,7 @@ io.on('connection', (socket) => {
               stones,
               playerCount: room.players.filter(player => player !== null).length,
             });
+            io.to(roomId).emit('updatePlayers', room.players);
           }
 
           // ---------------------- Shinkeiの処理 ----------------------
@@ -308,6 +314,7 @@ io.on('connection', (socket) => {
             isStarted: room.isStarted,
             flippedCardIndex: room.flippedCardIndex
           });
+          io.to(roomId).emit('updatePlayers', room.players);
 
           judge.forEach(([a, b]) => {
             const playersLeft = room.players[a] === null && room.players[b] === null
@@ -360,7 +367,7 @@ io.on('connection', (socket) => {
             return;
           }
         })
-        
+
         io.to(roomId).emit('updatePlayers', room.players);
         const activePlayers = room.players.filter(player => player !== null).length;
 
@@ -603,7 +610,7 @@ io.on('connection', (socket) => {
             playerCount: room.players.filter((player) => player !== null).length,
             isStarted: room.isStarted,
             winner: room.winner,
-            number:teamData,
+            number: teamData,
             guesses: {
               teamA: guesses.teamA,
               teamB: guesses.teamB,

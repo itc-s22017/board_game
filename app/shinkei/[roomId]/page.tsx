@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react'
 import socket from '@/app/utils/socket';
 import Card from '@/app/components/Card';
 import Waiting from '@/app/components/Waiting';
-import { num, Player } from '../../utils/gameLogic';
+import { num, Player, ChatMessage } from '../../utils/gameLogic';
 import { useRouter } from 'next/navigation';
 import WinnerAnnouncement from '@/app/components/WinnerAnnouncement';
 import { Avatar } from '@/app/components/Avatar';
@@ -28,46 +28,26 @@ const page = ({ params }: { params: { roomId: string } }) => {
   const [isStarted, setIsStarted] = useState<Boolean>(false);
   const [winner, setWinner] = useState<Player | 'draw' | null>(null);
   const [players, setPlayers] = useState<(string | null)[]>([]);
-  const [leftTop, setLeftTop] = useState<string | null>(null);
-  const [rightTop, setRightTop] = useState<string | null>(null);
-  const [leftBottom, setLeftBottom] = useState<string | null>(null);
-  const [rightBottom, setRightBottom] = useState<string | null>(null);
-
-  const router = useRouter();
+  const [chatMessages, setChatMessages] = useState<Record<string, string | null>>({});
 
   useEffect(() => {
-    if (players.length > 0 && socket.id) {
-      const p = Array.from(new Set(players));  
-      const myIndex = p.findIndex((id) => id === socket.id);
-      const isEven = myIndex % 2 == 0
+    socket.on('receiveBubbleMessage', ({ playerId, message }: ChatMessage) => {
+      setChatMessages((prev) => ({ ...prev, [playerId]: message }));
 
-      if (isEven) {
-        if (myIndex === 0) {
-          setLeftBottom(p[myIndex] || null);
-          setRightBottom(p[2] || null);
-        } else if (myIndex === 2) {
-          setLeftBottom(p[myIndex] || null);
-          setRightBottom(p[0] || null);
-        }
+      setTimeout(() => {
+        setChatMessages((prev) => ({ ...prev, [playerId]: null }));
+      }, 5000);
+    });
 
-        setLeftTop(p[1] || null);
-        setRightTop(p[3] || null);
-      } else {
-        if (myIndex === 1) {
-          setLeftBottom(p[myIndex] || null);
-          setRightBottom(p[3] || null);
-        } else if (myIndex === 3) {
-          setLeftBottom(p[myIndex] || null);
-          setRightBottom(p[1] || null);
-        }
+    return () => {
+      socket.off('receiveChat');
+    };
+  }, []);
+  const handleChat = (playerId: string, message: string) => {
+    socket.emit('sendBubbleMessage', { roomId, playerId, message });
+  };
 
-        setLeftTop(p[0] || null);
-        setRightTop(p[2] || null);
-      }
-
-
-    }
-  }, [players, socket.id]);
+  const router = useRouter();
 
   const handleCardClick = (index: number) => {
     if (socket.id === currentPlayer && !card[index].isMatched) {
@@ -127,6 +107,7 @@ const page = ({ params }: { params: { roomId: string } }) => {
     socket.on('updatePlayers', (updatedPlayers) => {
       setPlayers(updatedPlayers);
     });
+
     console.log(players)
 
     return () => {
@@ -150,34 +131,49 @@ const page = ({ params }: { params: { roomId: string } }) => {
 
   return (
     <>
-      {/* アバターを四隅に配置 */}
       <div className="relative w-full h-full">
-        <div className="absolute top-4 left-4">
-          <Avatar playerId={leftTop} />
-        </div>
+        {players.map((playerId, index) => {
+          const isTeammate = (index % 2 === 0 && players.indexOf(socket.id || null) % 2 === 0) || (index % 2 === 1 && players.indexOf(socket.id || null) % 2 === 1);
 
-        <div className="absolute top-4 right-4">
-          <Avatar playerId={rightTop} />
-        </div>
+          let positionClass = '';
+          if (index === 0) {
+            positionClass = 'top-4 left-4';
+          } else if (index === 1) {
+            positionClass = 'top-4 right-4';
+          } else if (index === 2) {
+            positionClass = 'bottom-4 left-4';
+          } else if (index === 3) {
+            positionClass = 'bottom-4 right-4';
+          }
 
-        <div className="absolute bottom-4 left-4">
-          <Avatar playerId={leftBottom} />
-        </div>
+          return (
+            <div
+              key={index}
+              className={`absolute ${positionClass}`}
+            >
+              <div className="flex flex-col items-center">
+                <Avatar
+                  playerId={playerId}
+                  ownId={socket.id || ''}
+                  onChat={handleChat}
+                  chatMessage={chatMessages[playerId || ''] || null}
+                />
+                {isTeammate && socket.id !== playerId && <span className="mt-2 text-sm text-blue-600">味方</span>}
+                {!isTeammate && socket.id !== playerId && <span className="mt-2 text-sm text-red-600">敵</span>}
+                {currentPlayer === playerId && <strong>ターン中</strong>}
+              </div>
+            </div>
+          );
+        })}
 
-        <div className="absolute bottom-4 right-4">
-          <Avatar playerId={rightBottom} />
-        </div>
-
-        {/* ゲームUI */}
         <div
           className="relative mx-auto grid grid-cols-8 gap-4"
           style={{
             width: '800px',
-            marginTop: '150px', // 少し下に調整
+            marginTop: '150px',
           }}
         >
           {card.map((cardo, index) => {
-            // ランダムな上下のずれを設定 (-30px から +30px の範囲)
             const offsetY = Math.random() * 60 - 30;
 
             return (
@@ -185,7 +181,7 @@ const page = ({ params }: { params: { roomId: string } }) => {
                 key={index}
                 className="relative"
                 style={{
-                  transform: `translateY(${offsetY}px)`, // 上下にランダムに移動
+                  transform: `translateY(${offsetY}px)`,
                 }}
               >
                 <Card
@@ -199,12 +195,10 @@ const page = ({ params }: { params: { roomId: string } }) => {
         </div>
       </div>
 
-      {/* 現在のプレイヤー情報 */}
       <p className="text-center text-lg font-bold mt-4">
         現在のプレイヤー: {socket.id === currentPlayer ? 'あなた' : currentPlayer?.toUpperCase()}
       </p>
 
-      {/* 待機状態と勝者発表 */}
       {waiting && !isStarted && (
         <Waiting playerCount={waiting} onDismiss={() => (waiting === num ? setWaiting(0) : null)} />
       )}
