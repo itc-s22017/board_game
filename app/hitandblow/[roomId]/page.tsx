@@ -26,6 +26,14 @@ type Props = {
     opponentTeam: Guess[];
 };
 
+type Player = {
+    id: string;
+    contribution: number;
+    percent: number;
+};
+
+
+
 const GuessTable: React.FC<Props> = ({ ownTeam, opponentTeam }) => {
     return (
         <div className="p-14 bg-gray-100">
@@ -33,13 +41,13 @@ const GuessTable: React.FC<Props> = ({ ownTeam, opponentTeam }) => {
             <div className="flex justify-around w-full">
                 <div className="w-full">
                     <h3 className="text-center text-blue-600 font-semibold mb-4">味方チーム</h3>
-                    <div className="space-y-2">
-                        {ownTeam.map((data, index) => (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {ownTeam.slice(0).reverse().map((data, index) => (
                             <div
                                 key={`own-${index}`}
                                 className="flex justify-between items-center bg-white p-2 rounded shadow"
                             >
-                                <span className="font-semibold">{index}回目</span>
+                                <span className="font-semibold">{ownTeam.length - index}回目</span>
                                 <span className="font-semibold">予想:</span> {data.guess}
                                 <span className="font-semibold">ヒット:</span> {data.hit}
                                 <span className="font-semibold">ブロー:</span> {data.blow}
@@ -50,13 +58,14 @@ const GuessTable: React.FC<Props> = ({ ownTeam, opponentTeam }) => {
 
                 <div className="w-full">
                     <h3 className="text-center text-red-600 font-semibold mb-4">敵チーム</h3>
-                    <div className="space-y-2">
-                        {opponentTeam.map((data, index) => (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {/* 予想結果を逆順で表示 */}
+                        {opponentTeam.slice(0).reverse().map((data, index) => (
                             <div
                                 key={`opponent-${index}`}
                                 className="flex justify-between items-center bg-white p-2 rounded shadow"
                             >
-                                <span className="font-semibold">{index}回目</span>
+                                <span className="font-semibold">{opponentTeam.length - index}回目</span>
                                 <span className="font-semibold">予想:</span> {data.guess}
                                 <span className="font-semibold">ヒット:</span> {data.hit}
                                 <span className="font-semibold">ブロー:</span> {data.blow}
@@ -68,6 +77,7 @@ const GuessTable: React.FC<Props> = ({ ownTeam, opponentTeam }) => {
         </div>
     );
 };
+
 
 const CardHand: React.FC<CardHandProps> = ({ title, cards, isImage = false }) => {
     return (
@@ -102,7 +112,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
     const [opponentGuesses, setOpponentGuesses] = useState<Guess[]>([]);
     const [guess, setGuess] = useState<string>('');
     const [yourTeam, setYourTeam] = useState<string>('');
-    const [players, setPlayers] = useState<(string | null)[]>([]);
+    const [players, setPlayers] = useState<Player[] | null>([]);
     const [chatMessages, setChatMessages] = useState<Record<string, string | null>>({});
 
 
@@ -155,7 +165,6 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
                 setYourTeam(team);
                 console.log(`Your team is set to: ${team}`);
             }
-
             if (number !== undefined) setNumber(number);
             if (currentPlayer !== undefined) setCurrentPlayer(currentPlayer);
             if (winner !== undefined) setWinner(winner);
@@ -164,18 +173,19 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
             if (guesses) {
                 if (yourTeam === 'blue') {
+                    // Ensure teamA is your team and teamB is the opponent
                     setTeamGuesses(guesses.teamA);
                     setOpponentGuesses(guesses.teamB);
-                    console.log(teamGuesses)
-                    console.log(opponentGuesses)
+                    console.log("Your team's guesses: ", guesses.teamA);
+                    console.log("Opponent's guesses: ", guesses.teamB);
                 } else if (yourTeam === 'red') {
+                    // Ensure teamB is your team and teamA is the opponent
                     setTeamGuesses(guesses.teamB);
                     setOpponentGuesses(guesses.teamA);
-                    console.log(teamGuesses)
-                    console.log(opponentGuesses)
+                    console.log("Your team's guesses: ", guesses.teamB);
+                    console.log("Opponent's guesses: ", guesses.teamA);
                 } else {
-                    console.log(yourTeam)
-                    console.log(teamGuesses, opponentGuesses)
+                    console.log("Team not set correctly");
                 }
             }
         });
@@ -187,6 +197,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
         socket.on('updatePlayers', (updatedPlayers) => {
             setPlayers(updatedPlayers);
+            console.log(updatedPlayers)
         });
 
         console.log(players)
@@ -242,8 +253,15 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
         <div className="container mx-auto p-4">
             <div className="relative w-full h-full flex flex-col justify-between">
                 {/* プレイヤーのアバター */}
-                {players.map((playerId, index) => {
-                    const isTeammate = (index % 2 === 0 && players.indexOf(socket.id || null) % 2 === 0) || (index % 2 === 1 && players.indexOf(socket.id || null) % 2 === 1);
+                {players?.map((player, index) => {
+
+                    if (player === null) return null; // playerがnullの場合、レンダリングしない
+
+                    const uniqueKey = `${player.id}-${index}`;
+
+                    const isTeammate =
+                        (index % 2 === 0 && players.findIndex(p => p.id === (socket.id || null)) % 2 === 0) ||
+                        (index % 2 === 1 && players.findIndex(p => p.id === (socket.id || null)) % 2 === 1);
 
                     let positionClass = '';
                     if (index === 0) {
@@ -258,24 +276,24 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
                     return (
                         <div
-                            key={index}
+                            key={uniqueKey}
                             className={`absolute ${positionClass}`}
                         >
                             <div className="flex flex-col items-center">
                                 <Avatar
-                                    playerId={playerId}
+                                    playerId={player.id}
                                     ownId={socket.id || ''}
                                     onChat={handleChat}
-                                    chatMessage={chatMessages[playerId || ''] || null}
+                                    chatMessage={chatMessages[player.id || ''] || null}
                                 />
-                                {isTeammate && socket.id !== playerId && <span className="mt-2 text-sm text-blue-600">味方</span>}
-                                {!isTeammate && socket.id !== playerId && <span className="mt-2 text-sm text-red-600">敵</span>}
-                                {currentPlayer === playerId && <strong>ターン中</strong>}
+                                {isTeammate && socket.id !== player.id && <span className="mt-2 text-sm text-blue-600">味方</span>}
+                                {!isTeammate && socket.id !== player.id && <span className="mt-2 text-sm text-red-600">敵</span>}
+                                貢献度:{player.percent}%
+                                {currentPlayer === player.id && <strong>ターン中</strong>}
                             </div>
                         </div>
                     );
                 })}
-
 
                 {/* カード */}
                 <div className="flex flex-col items-center mt-4">

@@ -73,15 +73,16 @@ io.on('connection', (socket) => {
     if (GAME.has(roomId)) {
       const room = GAME.get(roomId);
       console.log(room)
-      if (!room.players.includes(socket.id)) {
-        const activePlayers = room.players.filter(player => player !== null).length;
+      if (!room.players.some(player => player !== null && player.id === socket.id)) {
+        const activePlayers = room.players.filter(player => player !== null && player.id !== null).length;
 
         if (activePlayers < playersLimit) {
-          const findNull = room.players.indexOf(null);
+          const findNull = room.players.findIndex(player => player === null);
           if (findNull === -1) {
-            room.players.push(socket.id);
+            // room.players.push(socket.id);
+            room.players.push({ id: socket.id, contribution: 0, percent: 0 });
           } else {
-            room.players[findNull] = socket.id;
+            room.players[findNull] = { id: socket.id, contribution: 0, percent: 0 };
           }
           socket.join(roomId);
 
@@ -123,54 +124,67 @@ io.on('connection', (socket) => {
             io.to(roomId).emit('updatePlayers', room.players);
             // ---------------- hit&blowの処理 -------------------------
           } else if (game === 'hitandblow') {
-            const isIncludes = room.players.indexOf(socket.id);
-            // const team = isIncludes % 2 === 0 ? room.blue : room.red;
+            const isIncludes = room.players.findIndex(player => player.id === socket.id);
+            const currentPlayer = room.players[room.currentPlayerIndex].id;
+
             socket.emit('joinHitAndBlowResponse', {
               success: true,
-              currentPlayer: room.players[room.currentPlayerIndex],
+              currentPlayer: currentPlayer,
             });
-            console.log('room:' + room.players[room.currentPlayerIndex])
+            console.log('room:', currentPlayer);
 
             if (isIncludes % 2 === 0) {
-              io.to(room.players[0]).emit('updateHitAndBlowGameState', {
-                currentPlayer: room.players[room.currentPlayerIndex],
-                playerCount: room.players.filter(player => player !== null).length,
-                isStarted: room.isStarted,
-                winner: room.winner,
-                number: room.blue,
-                team: 'blue'
-              });
-              io.to(room.players[2]).emit('updateHitAndBlowGameState', {
-                currentPlayer: room.players[room.currentPlayerIndex],
-                playerCount: room.players.filter(player => player !== null).length,
-                isStarted: room.isStarted,
-                winner: room.winner,
-                number: room.blue,
-                team: 'blue'
-              });
+              // blue team
+              if (room.players[0] && room.players[0].id) {
+                io.to(room.players[0].id).emit('updateHitAndBlowGameState', {
+                  currentPlayer: room.players[room.currentPlayerIndex]?.id,
+                  playerCount: room.players.filter(player => player !== null).length,
+                  isStarted: room.isStarted,
+                  winner: room.winner,
+                  number: room.blue,
+                  team: 'blue'
+                });
+              }
+              if (room.players[2] && room.players[2].id) {
+                io.to(room.players[2].id).emit('updateHitAndBlowGameState', {
+                  currentPlayer: room.players[room.currentPlayerIndex]?.id,
+                  playerCount: room.players.filter(player => player !== null).length,
+                  isStarted: room.isStarted,
+                  winner: room.winner,
+                  number: room.blue,
+                  team: 'blue'
+                });
+              }
             } else {
-              io.to(room.players[1]).emit('updateHitAndBlowGameState', {
-                currentPlayer: room.players[room.currentPlayerIndex],
-                playerCount: room.players.filter(player => player !== null).length,
-                isStarted: room.isStarted,
-                winner: room.winner,
-                number: room.red,
-                team: 'red'
-              });
-              io.to(room.players[3]).emit('updateHitAndBlowGameState', {
-                currentPlayer: room.players[room.currentPlayerIndex],
-                playerCount: room.players.filter(player => player !== null).length,
-                isStarted: room.isStarted,
-                winner: room.winner,
-                number: room.red,
-                team: 'red'
-              });
+              // red team
+              if (room.players[1] && room.players[1].id) {
+                io.to(room.players[1].id).emit('updateHitAndBlowGameState', {
+                  currentPlayer: room.players[room.currentPlayerIndex]?.id,
+                  playerCount: room.players.filter(player => player !== null).length,
+                  isStarted: room.isStarted,
+                  winner: room.winner,
+                  number: room.red,
+                  team: 'red'
+                });
+              }
+              if (room.players[3] && room.players[3].id) {
+                io.to(room.players[3].id).emit('updateHitAndBlowGameState', {
+                  currentPlayer: room.players[room.currentPlayerIndex]?.id,
+                  playerCount: room.players.filter(player => player !== null).length,
+                  isStarted: room.isStarted,
+                  winner: room.winner,
+                  number: room.red,
+                  team: 'red'
+                });
+              }
             }
             io.to(roomId).emit('updatePlayerCount', {
               playerCount: room.players.filter(player => player !== null).length
             });
-            io.to(roomId).emit('updatePlayers', room.players);
+            io.to(roomId).emit('updatePlayers', room.players);  // Send only player IDs
           }
+
+
         } else {
           socket.emit('joinRoomResponse', { success: false, isMax: true });
         }
@@ -388,10 +402,10 @@ io.on('connection', (socket) => {
 
     // ---------------------Hit&Blow----------------------------------
     hitandblowRooms.forEach((room, roomId) => {
-      const playerIndex = room.players.indexOf(socket.id);
+      const playerIndex = room.players.findIndex(player => player?.id === socket.id);
 
       if (playerIndex !== -1) {
-        room.players = room.players.map(player => player === room.players[playerIndex] ? null : player);
+        room.players = room.players.map(player => player?.id === room.players[playerIndex]?.id ? null : player);
 
 
         if (room.isStarted) {
@@ -426,7 +440,7 @@ io.on('connection', (socket) => {
           hitandblowRooms.delete(roomId);
         } else {
           io.to(roomId).emit('updateHitAndBlowGameState', {
-            currentPlayer: room.players[room.currentPlayerIndex],
+            currentPlayer: room.players[room.currentPlayerIndex]?.id,
             playerCount: room.players.filter(player => player !== null).length,
             isStarted: room.isStarted,
             winner: room.winner,
@@ -460,7 +474,7 @@ io.on('connection', (socket) => {
 
   socket.on('flipCard', (index, roomId) => {
     const room = shinkeiRooms.get(roomId);
-    if (!room || room.players.length < playersLimit) {
+    if (!room || room.players.filter(player => player !== null).length < playersLimit) {
       console.log('Not enough players or room does not exist.');
       return;
     }
@@ -526,13 +540,6 @@ io.on('connection', (socket) => {
         });
         console.log(`index:${room.flippedCardIndex.length}`)
       }
-
-      // Check if the game is over (all cards matched)
-      // const allMatched = room.cards.every((card) => card.isMatched);
-      // if (allMatched) {
-      //   room.winner = currentPlayer; // Assuming currentPlayer wins; adjust logic as needed
-      //   io.to(roomId).emit('gameOver', { winner: room.winner });
-      // }
     }
   });
 
@@ -559,54 +566,49 @@ io.on('connection', (socket) => {
   socket.on('makeGuess', (roomId, guess) => {
     const room = hitandblowRooms.get(roomId);
     const { currentPlayerIndex, players, red, blue, guesses } = room;
-    if (!room || room.players.length < playersLimit || socket.id !== players[currentPlayerIndex]) {
-      console.log('Not enough players or room does not exist.');
+
+    if (!room || room.players.filter(player => player !== null).length < playersLimit || socket.id !== room.players[currentPlayerIndex]?.id) {
+      console.log('プレイヤーが足りないか、部屋が存在しないか、現在のプレイヤーではありません。');
       return;
     }
-    const isTeamA = players.indexOf(socket.id) % 2 !== 0 // true => teamA
+
+    const isTeamA = players.findIndex(player => player.id === socket.id) % 2 === 0; // チームA: 偶数、チームB: 奇数
+    const correctAnswer = isTeamA ? red : blue;
+
     if (!room.isStarted) {
       room.isStarted = true;
     }
-    const correctAnswer = isTeamA ? blue : red
+
     const { hit, blow } = calculateHitAndBlow(guess, correctAnswer);
-    if (!isTeamA) {
-      guesses.teamA.push({ guess, hit, blow })
+    players[currentPlayerIndex].contribution += hit * 10 + blow * 5;
+
+
+    if (isTeamA) {
+      guesses.teamA.push({ guess, hit, blow });
     } else {
-      guesses.teamB.push({ guess, hit, blow })
+      guesses.teamB.push({ guess, hit, blow });
     }
+
     room.currentPlayerIndex = (currentPlayerIndex + 1) % room.players.length;
 
-    if (hit === 3 & blow === 0) {
-      const red = createRandomNumber();
-      const blue = createRandomNumber();
-      room.winner = isTeamA ? 'red' : 'blue';
+    if (hit === 3 && blow === 0) {
+      const newRed = createRandomNumber();
+      const newBlue = createRandomNumber();
+      room.winner = isTeamA ? 'blue' : 'red';
       room.isStarted = false;
       room.currentPlayerIndex = 0;
       room.guesses.teamA = [];
       room.guesses.teamB = [];
-      room.red = red;
-      room.blue = blue;
-      // io.to(roomId).emit('updateHitAndBlowGameState', {
-      //   currentPlayer: room.players[room.currentPlayerIndex],
-      //   playerCount: room.players.filter(player => player !== null).length,
-      //   isStarted: room.isStarted,
-      //   winner: room.winner,
-      //   red: room.red,
-      //   blue: room.blue,
-      //   guesses: {
-      //     teamA: guesses.teamA,
-      //     teamB: guesses.teamB,
-      //   },
-      // });
+      room.red = newRed;
+      room.blue = newBlue;
+
       players.forEach((player, index) => {
         if (player !== null) {
-          const isPlayerTeamA = index % 2 !== 0;
-          const teamData = isPlayerTeamA
-            ? room.red
-            : room.blue
+          const isPlayerTeamA = index % 2 === 0;
+          const teamData = isPlayerTeamA ? newBlue : newRed;
 
-          io.to(player).emit('updateHitAndBlowGameState', {
-            currentPlayer: room.players[room.currentPlayerIndex],
+          io.to(player.id).emit('updateHitAndBlowGameState', {
+            currentPlayer: room.players[room.currentPlayerIndex]?.id,
             playerCount: room.players.filter((player) => player !== null).length,
             isStarted: room.isStarted,
             winner: room.winner,
@@ -618,10 +620,11 @@ io.on('connection', (socket) => {
           });
         }
       });
-      room.winner = null
+      room.winner = null;
     } else {
+      // ゲームがまだ続いている場合、現在のゲーム状態を全プレイヤーに送信
       io.to(roomId).emit('updateHitAndBlowGameState', {
-        currentPlayer: room.players[room.currentPlayerIndex],
+        currentPlayer: room.players[room.currentPlayerIndex]?.id,
         playerCount: room.players.filter(player => player !== null).length,
         isStarted: room.isStarted,
         winner: room.winner,
@@ -631,7 +634,25 @@ io.on('connection', (socket) => {
         },
       });
     }
-  })
+
+    const currentPlayerIsTeamA = currentPlayerIndex % 2 === 0;
+
+    let teamContribution = 0;
+    const teammates = players.filter((_, index) => index % 2 === (currentPlayerIsTeamA ? 0 : 1));
+    teammates.forEach(player => {
+      teamContribution += player?.contribution || 0;
+    });
+
+    teammates.forEach(player => {
+      if (player) {
+        const contribution = player.contribution || 0;
+        const percent = teamContribution > 0 ? (contribution / teamContribution) * 100 : 0;
+        player.percent = Math.round(percent);
+      }
+    });
+    io.to(roomId).emit('updatePlayers', room.players);
+  });
+
 });
 
 
