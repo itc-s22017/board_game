@@ -255,13 +255,13 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
                 {/* プレイヤーのアバター */}
                 {players?.map((player, index) => {
 
-                    if (player === null) return null; // playerがnullの場合、レンダリングしない
+                    if (player === null) return null; 
 
                     const uniqueKey = `${player.id}-${index}`;
 
                     const isTeammate =
-                        (index % 2 === 0 && players.findIndex(p => p.id === (socket.id || null)) % 2 === 0) ||
-                        (index % 2 === 1 && players.findIndex(p => p.id === (socket.id || null)) % 2 === 1);
+                        (index % 2 === 0 && players.findIndex(p => p?.id === (socket.id || null)) % 2 === 0) ||
+                        (index % 2 === 1 && players.findIndex(p => p?.id === (socket.id || null)) % 2 === 1);
 
                     let positionClass = '';
                     if (index === 0) {

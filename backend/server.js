@@ -110,12 +110,12 @@ io.on('connection', (socket) => {
           else if (game === 'shinkei') {
             socket.emit('joinShinkeiResponse', {
               success: true,
-              cards: room.cards,
-              currentPlayer: room.players[room.currentPlayerIndex],
+              // cards: room.cards,
+              // currentPlayer: room.players[room.currentPlayerIndex],
             });
             io.to(roomId).emit('updateShinkeiGameState', {
               cards: room.cards,
-              currentPlayer: room.players[room.currentPlayerIndex],
+              currentPlayer: room.players[room.currentPlayerIndex].id,
               playerCount: room.players.filter(player => player !== null).length,
               isStarted: room.isStarted,
               winner: room.winner,
@@ -351,10 +351,10 @@ io.on('connection', (socket) => {
 
     // ---------------------------Shinkei----------------------------
     shinkeiRooms.forEach((room, roomId) => {
-      const playerIndex = room.players.indexOf(socket.id);
+      const playerIndex = room.players.findIndex(player => player?.id === socket.id);
 
       if (playerIndex !== -1) {
-        room.players = room.players.map(player => player === room.players[playerIndex] ? null : player);
+        room.players = room.players.map(player => player?.id === room.players[playerIndex]?.id ? null : player);
 
 
         if (room.isStarted) {
@@ -392,7 +392,7 @@ io.on('connection', (socket) => {
           io.to(roomId).emit('updateShinkeiGameState', {
             cards: room.cards,
             playerCount: room.players.filter(player => player !== null).length,
-            currentPlayer: room.players[room.currentPlayerIndex],
+            currentPlayer: room.players[room.currentPlayerIndex]?.id,
             isStarted: room.isStarted,
             flippedCardIndex: room.flippedCardIndex
           });
@@ -474,13 +474,13 @@ io.on('connection', (socket) => {
 
   socket.on('flipCard', (index, roomId) => {
     const room = shinkeiRooms.get(roomId);
-    if (!room || room.players.filter(player => player !== null).length < playersLimit) {
-      console.log('Not enough players or room does not exist.');
+    const { currentPlayerIndex, players } = room;
+    const currentPlayer = players[currentPlayerIndex]?.id;
+
+    if (!room || room.players.filter(player => player !== null).length < playersLimit || socket.id !== room.players[currentPlayerIndex]?.id) {
+      console.log('プレイヤーが足りないか、部屋が存在しないか、現在のプレイヤーではありません。');
       return;
     }
-
-    const { currentPlayerIndex, players } = room;
-    const currentPlayer = players[currentPlayerIndex];
 
     if (socket.id === currentPlayer) {
       if (!room.isStarted) {
@@ -496,17 +496,42 @@ io.on('connection', (socket) => {
           firstCard.isMatched = true;
           secondCard.isMatched = true;
           currentPlayerIndex % 2 === 0 ? room.red += 1 : room.blue += 1
+          room.players[currentPlayerIndex].contribution += 10
+          console.log(room.players)
         }
+
+        const redContribution = room.players.reduce((sum, player, index) => {
+          return player && index % 2 === 0 ? sum + player.contribution : sum;
+        }, 0);
+
+        const blueContribution = room.players.reduce((sum, player, index) => {
+          return player && index % 2 !== 0 ? sum + player.contribution : sum;
+        }, 0);
+
+        room.players.forEach((player, index) => {
+          if (player) {
+            const teamTotal = index % 2 === 0 ? redContribution : blueContribution;
+            player.percent = teamTotal > 0 ? (player.contribution / teamTotal) * 100 : 0;
+          }
+        });
 
         if (checkShinkeiWinner(room)) {
           const winner = room.red > room.blue ? 'red' : room.red < room.blue ? 'blue' : 'draw';
+
+          room.players.forEach((player) => {
+            if (player) {
+              player.contribution = 0;
+              player.percent = 0;
+            }
+          });
+
           room.cards = initializeCard();
           room.currentPlayerIndex = 0;
           room.flippedCardIndex = [];
 
           io.to(roomId).emit('updateShinkeiGameState', {
             cards: room.cards,
-            currentPlayer: room.players[room.currentPlayerIndex],
+            currentPlayer: room.players[room.currentPlayerIndex].id,
             winner: winner || null,
             flippedCardIndex: room.flippedCardIndex
           });
@@ -515,31 +540,29 @@ io.on('connection', (socket) => {
         const nextPlayerIndex = room.currentPlayerIndex + 1
         room.currentPlayerIndex = nextPlayerIndex % playersLimit
 
-        // room.currentPlayerIndex += 1
         io.to(roomId).emit('updateShinkeiGameState', {
           cards: room.cards,
           playerCount: room.players.filter((player) => player !== null).length,
-          currentPlayer: room.players[room.currentPlayerIndex],
+          currentPlayer: room.players[room.currentPlayerIndex]?.id,
           isStarted: room.isStarted,
           flippedCardIndex: room.flippedCardIndex,
           winner: null
         });
         console.log(`index:${room.flippedCardIndex.length}`)
         room.flippedCardIndex = [];
-
       } else {
-
         room.flippedCardIndex.push(index);
         io.to(roomId).emit('updateShinkeiGameState', {
           cards: room.cards,
           playerCount: room.players.filter((player) => player !== null).length,
-          currentPlayer: room.players[room.currentPlayerIndex],
+          currentPlayer: room.players[room.currentPlayerIndex]?.id,
           isStarted: room.isStarted,
           flippedCardIndex: room.flippedCardIndex,
           winner: null
         });
         console.log(`index:${room.flippedCardIndex.length}`)
       }
+      io.to(roomId).emit('updatePlayers', room.players);
     }
   });
 
@@ -582,6 +605,8 @@ io.on('connection', (socket) => {
     const { hit, blow } = calculateHitAndBlow(guess, correctAnswer);
     players[currentPlayerIndex].contribution += hit * 10 + blow * 5;
 
+    console.log(room.players)
+
 
     if (isTeamA) {
       guesses.teamA.push({ guess, hit, blow });
@@ -594,6 +619,14 @@ io.on('connection', (socket) => {
     if (hit === 3 && blow === 0) {
       const newRed = createRandomNumber();
       const newBlue = createRandomNumber();
+
+      room.players.forEach((player) => {
+        if (player) {
+          player.contribution = 0;
+          player.percent = 0;
+        }
+      });
+
       room.winner = isTeamA ? 'blue' : 'red';
       room.isStarted = false;
       room.currentPlayerIndex = 0;
@@ -622,7 +655,6 @@ io.on('connection', (socket) => {
       });
       room.winner = null;
     } else {
-      // ゲームがまだ続いている場合、現在のゲーム状態を全プレイヤーに送信
       io.to(roomId).emit('updateHitAndBlowGameState', {
         currentPlayer: room.players[room.currentPlayerIndex]?.id,
         playerCount: room.players.filter(player => player !== null).length,
