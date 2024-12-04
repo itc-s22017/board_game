@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import socket from '../../utils/socket';
-import { num, ChatMessage } from '../../utils/gameLogic';
+import { num, ChatMessage, allPlayer } from '../../utils/gameLogic';
 import WinnerAnnouncement2 from '@/app/components/WinnerAnnouncement';
 import Waiting from '@/app/components/Waiting';
 import { useRouter } from 'next/navigation';
@@ -25,14 +25,6 @@ type Props = {
     ownTeam: Guess[];
     opponentTeam: Guess[];
 };
-
-type Player = {
-    id: string;
-    contribution: number;
-    percent: number;
-};
-
-
 
 const GuessTable: React.FC<Props> = ({ ownTeam, opponentTeam }) => {
     return (
@@ -112,7 +104,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
     const [opponentGuesses, setOpponentGuesses] = useState<Guess[]>([]);
     const [guess, setGuess] = useState<string>('');
     const [yourTeam, setYourTeam] = useState<string>('');
-    const [players, setPlayers] = useState<Player[] | null>([]);
+    const [players, setPlayers] = useState<allPlayer[] | null>([]);
     const [chatMessages, setChatMessages] = useState<Record<string, string | null>>({});
 
 

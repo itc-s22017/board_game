@@ -1,10 +1,19 @@
 export type CellValue = 'black' | 'white' | null;
 export type BoardState = CellValue[][];
 export type Player = 'black' | 'white';
+
 export type ChatMessage = {
-    playerId: string;
-    message: string;
-  };
+  playerId: string;
+  message: string;
+};
+
+export type allPlayer = {
+  id: string;
+  contribution: number;
+  percent: number;
+};
+
+
 export const num = 4;
 
 // // 盤面の初期化を行う関数

@@ -3,7 +3,7 @@ import React, { useEffect, useState, useMemo } from 'react'
 import socket from '@/app/utils/socket';
 import Card from '@/app/components/Card';
 import Waiting from '@/app/components/Waiting';
-import { num, Player, ChatMessage } from '../../utils/gameLogic';
+import { num, Player, ChatMessage, allPlayer } from '../../utils/gameLogic';
 import { useRouter } from 'next/navigation';
 import WinnerAnnouncement from '@/app/components/WinnerAnnouncement';
 import { Avatar } from '@/app/components/Avatar';
@@ -15,13 +15,6 @@ type CardType = {
   id: number;
   isMatched: boolean;
 };
-
-type allPlayer = {
-  id: string;
-  contribution: number;
-  percent: number;
-};
-
 
 const page = ({ params }: { params: { roomId: string } }) => {
 
