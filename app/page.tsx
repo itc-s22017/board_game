@@ -36,7 +36,7 @@ const Home = () => {
     <div className='min-h-screen flex flex-col justify-center items-center'>
       <div className='grid grid-cols-3 gap-6 w-full max-w-4xl px-4'>
         <Button 
-          onClick={() => router.push('https://board-game-2t88-2jbghj24i-itcs22017s-projects.vercel.app//create/othello')}
+          onClick={() => router.push('/create/othello')}
           className="h-80 text-2xl font-bold bg-primary/90 hover:bg-primary/100 transition-all duration-300 ease-in-out transform hover:scale-105 shadow-lg"
           variant="default"
         >
