@@ -16,7 +16,7 @@ type CardType = {
   isMatched: boolean;
 };
 
-const page = ({ params }: { params: { roomId: string } }) => {
+const Page = ({ params }: { params: { roomId: string } }) => {
 
   const roomId = params.roomId;
 
@@ -214,4 +214,4 @@ const page = ({ params }: { params: { roomId: string } }) => {
 
 }
 
-export default page
+export default Page
