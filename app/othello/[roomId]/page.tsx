@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import socket from '../../utils/socket';
-import { BoardState, Player, num, ChatMessage } from '../../utils/gameLogic';
+import { BoardState, Player, num, ChatMessage,allPlayer } from '../../utils/gameLogic';
 import WinnerAnnouncement from '../../components/WinnerAnnouncement';
 import Board from '../../components/Board';
 import Waiting from '@/app/components/Waiting';
@@ -16,7 +16,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
   const [socId, setSocId] = useState<string | undefined>(undefined);
   const [waiting, setWaiting] = useState<number>(0);
   const [isStarted, setIsStarted] = useState<Boolean>(false);
-  const [players, setPlayers] = useState<(string | null)[]>([]);
+  const [players, setPlayers] = useState<allPlayer[] | null>([]);
   const [chatMessages, setChatMessages] = useState<Record<string, string | null>>({});
 
   const router = useRouter();
@@ -121,8 +121,15 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
   return (
     <div className="container mx-auto relative p-64">
-      {players.map((playerId, index) => {
-        const isTeammate = (index % 2 === 0 && players.indexOf(socket.id || null) % 2 === 0) || (index % 2 === 1 && players.indexOf(socket.id || null) % 2 === 1);
+      {players?.map((player, index) => {
+
+        if (player === null) return null;
+
+        const uniqueKey = `${player.id}-${index}`;
+
+        const isTeammate =
+          (index % 2 === 0 && players.findIndex(p => p?.id === (socket.id || null)) % 2 === 0) ||
+          (index % 2 === 1 && players.findIndex(p => p?.id === (socket.id || null)) % 2 === 1);
 
         let positionClass = '';
         if (index === 0) {
@@ -137,19 +144,20 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
         return (
           <div
-            key={index}
+            key={uniqueKey}
             className={`absolute ${positionClass}`}
           >
             <div className="flex flex-col items-center">
               <Avatar
-                playerId={playerId}
+                playerId={player.id}
                 ownId={socket.id || ''}
                 onChat={handleChat}
-                chatMessage={chatMessages[playerId || ''] || null}
+                chatMessage={chatMessages[player.id || ''] || null}
               />
-              {isTeammate && socket.id !== playerId && <span className="mt-2 text-sm text-blue-600">味方</span>}
-              {!isTeammate && socket.id !== playerId && <span className="mt-2 text-sm text-red-600">敵</span>}
-              {currentPlayer === playerId && <strong>ターン中</strong>}
+              {isTeammate && socket.id !== player.id && <span className="mt-2 text-sm text-blue-600">味方</span>}
+              {!isTeammate && socket.id !== player.id && <span className="mt-2 text-sm text-red-600">敵</span>}
+              貢献度:{player.percent}%
+              {currentPlayer === player.id && <strong>ターン中</strong>}
             </div>
           </div>
         );

@@ -57,7 +57,7 @@ io.on('connection', (socket) => {
 
   socket.on('createothelloRoom', (roomId) => {
     if (!othelloRooms.has(roomId)) {
-      const newBoard = initializeBoard2();
+      const newBoard = initializeBoard();
       othelloRooms.set(roomId, {
         board: newBoard,
         currentPlayerIndex: 0,
@@ -91,14 +91,14 @@ io.on('connection', (socket) => {
             socket.emit('joinOthelloResponse', {
               success: true,
               board: room.board,
-              currentPlayer: room.players[room.currentPlayerIndex],
+              currentPlayer: room.players[room.currentPlayerIndex]?.id,
             });
 
             const stones = countStones(room.board);
 
             io.to(roomId).emit('updateGameState', {
               board: room.board,
-              currentPlayer: room.players[room.currentPlayerIndex],
+              currentPlayer: room.players[room.currentPlayerIndex]?.id,
               winner: null,
               stones,
               playerCount: room.players.filter(player => player !== null).length,
@@ -210,16 +210,17 @@ io.on('connection', (socket) => {
 
   socket.on('makeMove', ({ roomId, row, col }) => {
     const room = othelloRooms.get(roomId);
-    if (room.players.length < playersLimit) {
-      console.log('dameeeeeeeeeeeeeeeee');
+    const { board, currentPlayerIndex, players } = room;
+    const currentPlayer = players[currentPlayerIndex]?.id;
+
+    if (!room || room.players.filter(player => player !== null).length < playersLimit || socket.id !== room.players[currentPlayerIndex]?.id) {
+      console.log('プレイヤーが足りないか、部屋が存在しないか、現在のプレイヤーではありません。');
       return;
     }
-    if (room) {
-      const { board, currentPlayerIndex, players } = room;
-      const currentPlayer = players[currentPlayerIndex];
 
+    if (room) {
       if (socket.id === currentPlayer) {
-        const cp = room.players.indexOf(currentPlayer);
+        const cp = players.findIndex(player => player.id === currentPlayer)
         const BorW = cp % 2 === 0;
         const newBoard = makeMove(board, row, col, BorW ? 'black' : 'white');
 
@@ -241,7 +242,7 @@ io.on('connection', (socket) => {
             room.currentPlayerIndex = 0;
             io.to(roomId).emit('updateGameState', {
               board: room.board,
-              currentPlayer: players[room.currentPlayerIndex],
+              currentPlayer: players[room.currentPlayerIndex]?.id,
               winner: winner || null,
               stones: countStones(room.board),
             });
@@ -271,12 +272,12 @@ io.on('connection', (socket) => {
           // クライアントに更新された状態を送信
           io.to(roomId).emit('updateGameState', {
             board: newBoard,
-            currentPlayer: players[room.currentPlayerIndex],
+            currentPlayer: players[room.currentPlayerIndex]?.id,
             winner: winner || null,
             stones,
             isStarted: room.isStarted,
           });
-
+          io.to(roomId).emit('updatePlayers', room.players);
         } else {
           socket.emit('invalidMove', { message: 'そこに石は置けないよ！' });
         }
@@ -287,10 +288,10 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     // ----------------------Othello----------------------------
     othelloRooms.forEach((room, roomId) => {
-      const playerIndex = room.players.indexOf(socket.id);
+      const playerIndex = room.players.findIndex(player => player?.id === socket.id);
 
       if (playerIndex !== -1) {
-        room.players = room.players.map(player => player === room.players[playerIndex] ? null : player);
+        room.players = room.players.map(player => player?.id === room.players[playerIndex]?.id ? null : player);
 
 
         if (room.isStarted) {
@@ -321,7 +322,7 @@ io.on('connection', (socket) => {
         } else {
           io.to(roomId).emit('updateGameState', {
             board: room.board,
-            currentPlayer: room.players[room.currentPlayerIndex],
+            currentPlayer: room.players[room.currentPlayerIndex]?.id,
             winner: winner || null,
             stones,
             playerCount: room.players.filter(player => player !== null).length,
@@ -337,7 +338,7 @@ io.on('connection', (socket) => {
               room.currentPlayerIndex = 0;
               io.to(roomId).emit('updateGameState', {
                 board: room.board,
-                currentPlayer: room.players[room.currentPlayerIndex],
+                currentPlayer: room.players[room.currentPlayerIndex]?.id,
                 winner: null,
                 stones: countStones(room.board),
               });
