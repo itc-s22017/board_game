@@ -1,12 +1,14 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import socket from '../../utils/socket';
-import { BoardState, Player, num, ChatMessage,allPlayer } from '../../utils/gameLogic';
+import { BoardState, Player, num, ChatMessage, allPlayer } from '../../utils/gameLogic';
 import WinnerAnnouncement from '../../components/WinnerAnnouncement';
 import Board from '../../components/Board';
 import Waiting from '@/app/components/Waiting';
 import { useRouter } from 'next/navigation';
 import { Avatar } from '@/app/components/Avatar';
+import TurnTransition from '@/app/components/TurnTransition';
+import AnimatedBackground from '@/app/components/AnimatedBackground';
 
 const ChatPage = ({ params }: { params: { roomId: string } }) => {
   const [board, setBoard] = useState<BoardState>(Array(8).fill(Array(8).fill(null)));
@@ -121,6 +123,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
   return (
     <div className="container mx-auto relative p-64">
+      <TurnTransition currentPlayer={currentPlayer} socId={socId} />
       {players?.map((player, index) => {
 
         if (player === null) return null;

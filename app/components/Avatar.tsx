@@ -1,7 +1,6 @@
 import avatar from '../img/avatar.png';
-import { useEffect, useState } from 'react';
-import socket from '../utils/socket';
-import { send } from 'process';
+import { useState } from 'react';
+
 
 type ChatProps = {
     playerId: string | null;

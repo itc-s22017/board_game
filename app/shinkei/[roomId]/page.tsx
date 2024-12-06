@@ -7,6 +7,7 @@ import { num, Player, ChatMessage, allPlayer } from '../../utils/gameLogic';
 import { useRouter } from 'next/navigation';
 import WinnerAnnouncement from '@/app/components/WinnerAnnouncement';
 import { Avatar } from '@/app/components/Avatar';
+import TurnTransition from '@/app/components/TurnTransition';
 
 
 type CardType = {
@@ -129,6 +130,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
   return (
     <>
       <div className="relative w-full h-full">
+      <TurnTransition currentPlayer={currentPlayer} socId={socket.id} />
         {players?.map((player, index) => {
 
           if (player === null) return null;

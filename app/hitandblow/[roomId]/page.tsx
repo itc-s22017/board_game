@@ -7,6 +7,7 @@ import Waiting from '@/app/components/Waiting';
 import { useRouter } from 'next/navigation';
 import trumpUra from '../../img/trump_ura.jpg';
 import { Avatar } from '@/app/components/Avatar';
+import TurnTransition from '@/app/components/TurnTransition';
 
 
 type CardHandProps = {
@@ -245,6 +246,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
         <div className="container mx-auto p-4">
             <div className="relative w-full h-full flex flex-col justify-between">
                 {/* プレイヤーのアバター */}
+                <TurnTransition currentPlayer={currentPlayer} socId={socId} />
                 {players?.map((player, index) => {
 
                     if (player === null) return null; 

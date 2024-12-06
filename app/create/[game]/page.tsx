@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import ReactModal from "react-modal";
 import socket from "../../utils/socket";
 import { createRandomNumber } from "../../utils/createRandomNumber";
 import { useRouter } from "next/navigation"
