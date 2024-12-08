@@ -164,9 +164,9 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
           } else if (index === 1) {
             positionClass = 'top-4 right-4';
           } else if (index === 2) {
-            positionClass = 'bottom-4 left-4';
+            positionClass = 'absolute left-4' + ' bottom-[150px]'; 
           } else if (index === 3) {
-            positionClass = 'bottom-4 right-4';
+            positionClass = 'absolute right-4' + ' bottom-[150px]'; 
           }
 
           return (
@@ -182,10 +182,13 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
                   chatMessage={chatMessages[player.id || ''] || null}
                   isCurrentPlayer={currentPlayer === player.id}
                 />
-                {isTeammate && socket.id !== player.id && <span className="mt-2 text-sm text-blue-600">味方</span>}
-                {!isTeammate && socket.id !== player.id && <span className="mt-2 text-sm text-red-600">敵</span>}
-                貢献度:{player.percent}%
-                {currentPlayer === player.id && <strong>ターン中</strong>}
+                <div className="mt-1 text-xs font-semibold text-white bg-black bg-opacity-50 px-2 py-1 rounded">
+                  {player.id === socket.id && <span className="text-white text-center">あなた</span>}
+                  {isTeammate && socket.id !== player.id && <span className="text-blue-300">味方</span>}
+                  {!isTeammate && socket.id !== player.id && <span className="text-red-300">敵</span>}
+                  <div>貢献度:{player.percent}%</div>
+                  {currentPlayer === player.id && <div>ターン中</div>}
+                </div>
               </div>
             </div>
           );

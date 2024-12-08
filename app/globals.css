@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes fall {
+  0% {
+    transform: translateY(-10%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.animate-fall {
+  animation: fall 10s linear infinite;
+}
+
+
 /* :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;

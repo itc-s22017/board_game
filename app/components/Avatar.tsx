@@ -66,7 +66,6 @@ export const Avatar: React.FC<AvatarProps> = ({ playerId, ownId, onChat, chatMes
             >
                 {firstLetter}
             </motion.div>
-            {playerId === ownId  && <strong>あなた</strong>}
             {chatMessage && (
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}

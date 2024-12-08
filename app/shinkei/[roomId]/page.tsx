@@ -186,11 +186,12 @@ const Page = ({ params }: { params: { roomId: string } }) => {
                     chatMessage={chatMessages[player.id || ''] || null}
                     isCurrentPlayer={currentPlayer === player.id}
                   />
-                  <div className="mt-2 text-sm font-semibold text-white">
+                  <div className="mt-1 text-xs font-semibold text-white bg-black bg-opacity-50 px-2 py-1 rounded">
+                    {player.id === socket.id && <span className="text-white text-center">あなた</span>}
                     {isTeammate && socket.id !== player.id && <span className="text-blue-300">味方</span>}
                     {!isTeammate && socket.id !== player.id && <span className="text-red-300">敵</span>}
-                    <div>貢献度: {player.percent}%</div>
-                    {currentPlayer === player.id && <div className="text-yellow-300">ターン中</div>}
+                    <div>貢献度:{player.percent}%</div>
+                    {currentPlayer === player.id && <div>ターン中</div>}
                   </div>
                 </div>
               </div>
