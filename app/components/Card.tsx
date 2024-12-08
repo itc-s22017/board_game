@@ -27,8 +27,6 @@ const Card: React.FC<CardProps> = ({ img, isFlipped, onClick }) => {
                     className={`absolute backface-hidden h-full w-full overflow-hidden rounded-lg ${isFlipped ? 'opacity-100' : 'opacity-0'
                         }`}
                 >
-                    import Image from 'next/image';
-
                     <Image
                         src={img}
                         alt="Card"
