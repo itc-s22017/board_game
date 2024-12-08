@@ -200,8 +200,6 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
         <p className="text-center text-lg font-bold mt-4">
           現在のプレイヤー: {socId === currentPlayer ? 'あなた' : currentPlayer?.toUpperCase()}
         </p>
-        <p className="text-center text-lg font-bold mt-4">黒: {stones.black}  白: {stones.white}</p>
-
         {waiting && !isStarted && <Waiting playerCount={waiting} onDismiss={() => { waiting === num ? setWaiting(0) : null }} />}
         {winner && <WinnerAnnouncement winner={winner} onDismiss={handleWinnerDismiss} />}
       </div>
