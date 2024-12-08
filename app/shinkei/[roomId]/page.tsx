@@ -163,6 +163,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
                   ownId={socket.id || ''}
                   onChat={handleChat}
                   chatMessage={chatMessages[player.id || ''] || null}
+                  isCurrentPlayer={currentPlayer === player.id}
                 />
                 {isTeammate && socket.id !== player.id && <span className="mt-2 text-sm text-blue-600">味方</span>}
                 {!isTeammate && socket.id !== player.id && <span className="mt-2 text-sm text-red-600">敵</span>}

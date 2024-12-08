@@ -11,7 +11,7 @@ const TurnTransition: React.FC<TurnTransitionProps> = ({ currentPlayer, socId })
 
   useEffect(() => {
     setIsVisible(true);
-    const timer = setTimeout(() => setIsVisible(false), 2000);
+    const timer = setTimeout(() => setIsVisible(false), 1000);
     return () => clearTimeout(timer);
   }, [currentPlayer]);
 
