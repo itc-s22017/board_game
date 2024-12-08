@@ -145,8 +145,8 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
   };
 
   return (
-    <div style={{ backgroundColor: '#696969' }}>
-      <div className="container mx-auto relative p-64">
+    <div className='bg-gradient-to-br from-rose-500 to-green-600'>
+      <div className="container mx-auto relative p-64 ">
         <AnimatedBackground />
         <TurnTransition currentPlayer={currentPlayer} socId={socId} />
         {players?.map((player, index) => {
