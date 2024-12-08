@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface TurnTransitionProps {
   currentPlayer: string;
   socId: string | undefined;
+  className?: string;
 }
 
 const TurnTransition: React.FC<TurnTransitionProps> = ({ currentPlayer, socId }) => {
@@ -11,7 +12,7 @@ const TurnTransition: React.FC<TurnTransitionProps> = ({ currentPlayer, socId })
 
   useEffect(() => {
     setIsVisible(true);
-    const timer = setTimeout(() => setIsVisible(false), 1000);
+    const timer = setTimeout(() => setIsVisible(false), 2000);
     return () => clearTimeout(timer);
   }, [currentPlayer]);
 
@@ -25,12 +26,9 @@ const TurnTransition: React.FC<TurnTransitionProps> = ({ currentPlayer, socId })
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 50 }}
           transition={{ duration: 0.5 }}
-          className="fixed inset-0 flex items-center justify-center z-50"
+          className="fixed left-1/3 top-2/3 z-50 -translate-x-1/2 -translate-y-1/2 transform"
         >
-          <div
-            className={`${currentPlayer === socId ? "bg-blue-500" : "bg-primary"
-              } text-primary-foreground px-6 py-3 rounded-lg shadow-lg text-2xl font-bold`}
-          >
+          <div className="rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-3 text-2xl font-bold text-white shadow-lg">
             {isYourTurn ? "あなたのターンです！" : `${currentPlayer}のターンです`}
           </div>
         </motion.div>
@@ -40,4 +38,3 @@ const TurnTransition: React.FC<TurnTransitionProps> = ({ currentPlayer, socId })
 };
 
 export default TurnTransition;
-

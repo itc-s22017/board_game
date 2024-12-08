@@ -1,26 +1,48 @@
 import React from 'react';
-import trumpUra from '../img/trump_ura.jpg';
+import Image from 'next/image';
 
-type CardProps = {
+interface CardProps {
     img: string;
     isFlipped: boolean;
     onClick: () => void;
-};
+}
 
-const Card = ({ img, isFlipped, onClick }: CardProps) => {
+const Card: React.FC<CardProps> = ({ img, isFlipped, onClick }) => {
     return (
         <div
-            className={`w-36 h-42 m-2 border-2 border-gray-400 flex items-center justify-center cursor-pointer transform transition-transform duration-500 ${isFlipped ? 'rotate-y-180' : ''
+            className={`relative h-24 w-16 cursor-pointer transition-transform duration-300 ease-in-out ${isFlipped ? 'rotate-y-180' : ''
                 }`}
             onClick={onClick}
         >
-            {isFlipped ? (
-                <img src={img} alt="card" className="w-full h-full object-cover" />
-            ) : (
-                <img src={trumpUra.src} alt="card" className="w-full h-full object-cover" />
-            )}
+            <div className="absolute h-full w-full rounded-lg shadow-md transition-all duration-300">
+                <div
+                    className={`absolute backface-hidden h-full w-full rounded-lg border-2 border-white bg-gradient-to-br from-blue-400 to-purple-500 ${isFlipped ? 'opacity-0' : 'opacity-100'
+                        }`}
+                >
+                    <div className="flex h-full items-center justify-center">
+                        <span className="text-2xl font-bold text-white">?</span>
+                    </div>
+                </div>
+                <div
+                    className={`absolute backface-hidden h-full w-full overflow-hidden rounded-lg ${isFlipped ? 'opacity-100' : 'opacity-0'
+                        }`}
+                >
+                    import Image from 'next/image';
+
+                    <Image
+                        src={img}
+                        alt="Card"
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                        style={{ objectFit: "cover" }}
+                        className="rounded-lg"
+                    />
+
+                </div>
+            </div>
         </div>
     );
 };
 
 export default Card;
+
