@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import trumpUra from '../../img/trump_ura.jpg';
 import { Avatar } from '@/app/components/Avatar';
 import TurnTransition from '@/app/components/TurnTransition';
+import { useToast } from '@/hooks/use-toast';
+import AnimatedBackground from '@/app/components/AnimatedBackground';
 
 
 type CardHandProps = {
@@ -110,6 +112,7 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
 
     const router = useRouter();
+    const { toast } = useToast();
     const roomId = params.roomId;
 
     const playerCards = number && number !== 0 ? number.toString().split('') : [];
@@ -120,7 +123,6 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
         socket.on('receiveBubbleMessage', ({ playerId, message }: ChatMessage) => {
             setChatMessages((prev) => ({ ...prev, [playerId]: message }));
 
-            // 5秒後に吹き出しを消す
             setTimeout(() => {
                 setChatMessages((prev) => ({ ...prev, [playerId]: null }));
             }, 5000);
@@ -156,7 +158,6 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
             if (team) {
                 setYourTeam(team);
-                console.log(`Your team is set to: ${team}`);
             }
             if (number !== undefined) setNumber(number);
             if (currentPlayer !== undefined) setCurrentPlayer(currentPlayer);
@@ -166,17 +167,11 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
 
             if (guesses) {
                 if (yourTeam === 'blue') {
-                    // Ensure teamA is your team and teamB is the opponent
                     setTeamGuesses(guesses.teamA);
                     setOpponentGuesses(guesses.teamB);
-                    console.log("Your team's guesses: ", guesses.teamA);
-                    console.log("Opponent's guesses: ", guesses.teamB);
                 } else if (yourTeam === 'red') {
-                    // Ensure teamB is your team and teamA is the opponent
                     setTeamGuesses(guesses.teamB);
                     setOpponentGuesses(guesses.teamA);
-                    console.log("Your team's guesses: ", guesses.teamB);
-                    console.log("Opponent's guesses: ", guesses.teamA);
                 } else {
                     console.log("Team not set correctly");
                 }
@@ -184,9 +179,15 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
         });
 
         socket.on('reset', () => {
-            alert("相手2人が切断しました")
-            router.push('/create')
-        });
+            toast({
+                title: "相手２人が切断しました",
+                description: 'ホーム画面に移動します',
+                duration: 5000,
+            });
+            setTimeout(() => {
+                router.push('/')
+            }, 2000)
+        })
 
         socket.on('updatePlayers', (updatedPlayers) => {
             setPlayers(updatedPlayers);
@@ -216,17 +217,6 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
         }
     };
 
-    useEffect(() => {
-        socket.on('invalidMove', (message) => {
-            alert(message.message);
-        });
-
-        return () => {
-            socket.off('invalidMove');
-        };
-    }, []);
-
-
     const handleWinnerDismiss = () => {
         setWinner(null);
     };
@@ -245,11 +235,11 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
     return (
         <div className="container mx-auto p-4">
             <div className="relative w-full h-full flex flex-col justify-between">
-                {/* プレイヤーのアバター */}
+                <AnimatedBackground />                
                 <TurnTransition currentPlayer={currentPlayer} socId={socId} />
                 {players?.map((player, index) => {
 
-                    if (player === null) return null; 
+                    if (player === null) return null;
 
                     const uniqueKey = `${player.id}-${index}`;
 
@@ -279,7 +269,8 @@ const ChatPage = ({ params }: { params: { roomId: string } }) => {
                                     ownId={socket.id || ''}
                                     onChat={handleChat}
                                     chatMessage={chatMessages[player.id || ''] || null}
-                                />
+                                    isCurrentPlayer={currentPlayer === player.id}
+                                    />
                                 {isTeammate && socket.id !== player.id && <span className="mt-2 text-sm text-blue-600">味方</span>}
                                 {!isTeammate && socket.id !== player.id && <span className="mt-2 text-sm text-red-600">敵</span>}
                                 貢献度:{player.percent}%

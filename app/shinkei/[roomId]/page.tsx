@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import WinnerAnnouncement from '@/app/components/WinnerAnnouncement';
 import { Avatar } from '@/app/components/Avatar';
 import TurnTransition from '@/app/components/TurnTransition';
+import { toast, useToast } from '@/hooks/use-toast';
+import AnimatedBackground from '@/app/components/AnimatedBackground';
 
 
 type CardType = {
@@ -20,6 +22,7 @@ type CardType = {
 const Page = ({ params }: { params: { roomId: string } }) => {
 
   const roomId = params.roomId;
+  const { toast } = useToast();
 
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [card, setCard] = useState<CardType[]>([]);
@@ -79,15 +82,21 @@ const Page = ({ params }: { params: { roomId: string } }) => {
 
     socket.on('joinShinkeiResponse', ({ success }) => {
       if (success) {
-        console.log('Received board:');
+        console.log('Success');
       } else {
         console.log('Failed to join room');
       }
     });
 
     socket.on('reset', () => {
-      alert("相手2人が切断しました")
-      router.push('/create/shinkei')
+      toast({
+        title: "相手２人が切断しました",
+        description: 'ホーム画面に移動します',
+        duration: 5000,
+      });
+      setTimeout(() => {
+        router.push('/')
+      }, 2000)
     })
 
     socket.on('updateShinkeiGameState', ({ cards, currentPlayer, playerCount, winner, flippedCardIndex, isStarted }) => {
@@ -105,8 +114,6 @@ const Page = ({ params }: { params: { roomId: string } }) => {
     socket.on('updatePlayers', (updatedPlayers) => {
       setPlayers(updatedPlayers);
     });
-
-    console.log(players)
 
     return () => {
       socket.off('joinShinkeiResponse');
@@ -130,7 +137,8 @@ const Page = ({ params }: { params: { roomId: string } }) => {
   return (
     <>
       <div className="relative w-full h-full">
-      <TurnTransition currentPlayer={currentPlayer} socId={socket.id} />
+        <AnimatedBackground />
+        <TurnTransition currentPlayer={currentPlayer} socId={socket.id} />
         {players?.map((player, index) => {
 
           if (player === null) return null;
