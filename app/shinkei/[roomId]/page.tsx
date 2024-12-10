@@ -11,6 +11,12 @@ import TurnTransition from '@/app/components/TurnTransition';
 import { toast, useToast } from '@/hooks/use-toast';
 import AnimatedBackground from '@/app/components/AnimatedBackground';
 import MatchAnimation from '@/app/components/MatchAnimation';
+const notificationSound = '/audio/notification.mp3';
+const flipCardSound = '/audio/flipCard.mp3';
+const inCorrect = '/audio/bubu.mp3';
+const Correct = '/audio/pinpon.mp3'
+
+
 
 
 type CardType = {
@@ -19,6 +25,9 @@ type CardType = {
   id: number;
   isMatched: boolean;
 };
+
+type Player2 = 'red' | 'blue';
+
 
 const Page = ({ params }: { params: { roomId: string } }) => {
 
@@ -30,15 +39,20 @@ const Page = ({ params }: { params: { roomId: string } }) => {
   const [currentPlayer, setCurrentPlayer] = useState<string>('');
   const [waiting, setWaiting] = useState<number>(0);
   const [isStarted, setIsStarted] = useState<Boolean>(false);
-  const [winner, setWinner] = useState<Player | 'draw' | null>(null);
+  const [winner, setWinner] = useState<Player2 | 'draw' | null>(null);
   const [players, setPlayers] = useState<allPlayer[] | null>([]);
   const [chatMessages, setChatMessages] = useState<Record<string, string | null>>({});
   const [showMatchAnimation, setShowMatchAnimation] = useState(false);
 
+  const playSound = (mp3: string) => {
+    const audio = new Audio(mp3);
+    audio.play();
+  };
 
   useEffect(() => {
     socket.on('receiveBubbleMessage', ({ playerId, message }: ChatMessage) => {
       setChatMessages((prev) => ({ ...prev, [playerId]: message }));
+      playSound(notificationSound);
 
       setTimeout(() => {
         setChatMessages((prev) => ({ ...prev, [playerId]: null }));
@@ -71,12 +85,12 @@ const Page = ({ params }: { params: { roomId: string } }) => {
         setShowMatchAnimation(true);
         setTimeout(() => {
           setFlippedCards([]);
-        }, 300)
+        }, 2000)
       } else {
         setShowMatchAnimation(true);
         setTimeout(() => {
           setFlippedCards([]);
-        }, 1000);
+        }, 2000);
       }
     }
   }, [flippedCards, card]);
@@ -110,6 +124,9 @@ const Page = ({ params }: { params: { roomId: string } }) => {
       setIsStarted(isStarted);
       setWinner(winner);
       setFlippedCards(prev => {
+        if (isStarted) {
+          playSound(flipCardSound);
+        }
         const newFlippedCards = flippedCardIndex;
         return newFlippedCards
       })
@@ -119,10 +136,18 @@ const Page = ({ params }: { params: { roomId: string } }) => {
       setPlayers(updatedPlayers);
     });
 
+    socket.on('dc', (dcPlayer) => {
+      toast({
+        title: `${dcPlayer.dcPlayer}番目のプレイヤーが切断しました`,
+        duration: 5000,
+      });
+    })
+
     return () => {
       socket.off('joinShinkeiResponse');
       socket.off('disconnect');
       socket.off('reset');
+      socket.off('dc');
       socket.off('updateShinkeiGameState');
       socket.off('updatePlayers');
     };
@@ -131,6 +156,36 @@ const Page = ({ params }: { params: { roomId: string } }) => {
   const handleWinnerDismiss = () => {
     setWinner(null);
   };
+
+  const getWinnerMessage = () => {
+    if (winner === 'draw') {
+      return '引き分けです！';
+    }
+
+    const isMyTeam = (playerIndex: number) => {
+      if (players === null) {
+        return false;
+      }
+
+      const playerIndexInRoom = players.findIndex(p => p?.id === socket.id);
+
+      if (playerIndexInRoom === -1) {
+        return false;
+      }
+
+      return (playerIndex % 2 === 0 && playerIndexInRoom % 2 === 0) ||
+        (playerIndex % 2 === 1 && playerIndexInRoom % 2 === 1);
+    };
+
+    if (winner === 'red') {
+      return isMyTeam(0) || isMyTeam(2) ? 'あなたのチーム' : '敵チーム';
+    } else if (winner === 'blue') {
+      return isMyTeam(1) || isMyTeam(3) ? 'あなたのチーム' : '敵チーム';
+    }
+
+    return '';
+  };
+
 
   const handleMatchAnimationComplete = () => {
     setShowMatchAnimation(false);
@@ -154,12 +209,14 @@ const Page = ({ params }: { params: { roomId: string } }) => {
             isVisible={showMatchAnimation}
             onAnimationComplete={handleMatchAnimationComplete}
             text='🎉'
+            playSound={() => playSound(Correct)}
           />
         ) : (
           <MatchAnimation
             isVisible={showMatchAnimation}
             onAnimationComplete={handleMatchAnimationComplete}
             text='✗'
+            playSound={() => playSound(inCorrect)}
           />
         )}
 
@@ -192,7 +249,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
                     />
                   </div>
                   <div className="mt-1 text-xs font-semibold text-white bg-black bg-opacity-50 px-2 py-1 rounded">
-                  {player.id === socket.id && <span className="text-white text-center">あなた</span>}
+                    {player.id === socket.id && <span className="text-white text-center">あなた</span>}
                     {isTeammate && socket.id !== player.id && <span className="text-blue-300">味方</span>}
                     {!isTeammate && socket.id !== player.id && <span className="text-red-300">敵</span>}
                     <div>貢献度:{player.percent}%</div>
@@ -237,7 +294,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
       {waiting && !isStarted && (
         <Waiting playerCount={waiting} onDismiss={() => (waiting === num ? setWaiting(0) : null)} />
       )}
-      {winner && <WinnerAnnouncement winner={winner} onDismiss={handleWinnerDismiss} />}
+      {winner && <WinnerAnnouncement winner={getWinnerMessage()} onDismiss={handleWinnerDismiss} />}
     </div>
   );
 }

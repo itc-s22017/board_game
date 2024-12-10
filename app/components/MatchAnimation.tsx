@@ -5,17 +5,26 @@ interface MatchAnimationProps {
   isVisible: boolean;
   onAnimationComplete: () => void;
   text: string;
+  playSound: () => void;
 }
 
-const MatchAnimation: React.FC<MatchAnimationProps> = ({ isVisible, onAnimationComplete,text }) => {
+const MatchAnimation: React.FC<MatchAnimationProps> = ({ isVisible, onAnimationComplete, text, playSound }) => {
   useEffect(() => {
     if (isVisible) {
+      const timer2 = setTimeout(() => {
+        playSound();
+      }, 500);
+
       const timer = setTimeout(() => {
         onAnimationComplete();
       }, 1500);
-      return () => clearTimeout(timer);
+
+      return () => {
+        clearTimeout(timer);  
+        clearTimeout(timer2);
+      };
     }
-  }, [isVisible, onAnimationComplete]);
+  }, [isVisible]);
 
   return (
     <AnimatePresence>
