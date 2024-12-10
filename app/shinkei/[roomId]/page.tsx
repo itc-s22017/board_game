@@ -179,15 +179,20 @@ const Page = ({ params }: { params: { roomId: string } }) => {
             return (
               <div key={uniqueKey} className={`absolute ${positionClass}`}>
                 <div className="flex flex-col items-center mt-20">
-                  <Avatar
-                    playerId={player.id}
-                    ownId={socket.id || ''}
-                    onChat={handleChat}
-                    chatMessage={chatMessages[player.id || ''] || null}
-                    isCurrentPlayer={currentPlayer === player.id}
-                  />
+                  <div className="relative">
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-black font-bold text-sm z-10">
+                      {index + 1}
+                    </div>
+                    <Avatar
+                      playerId={player.id}
+                      ownId={socket.id || ''}
+                      onChat={handleChat}
+                      chatMessage={chatMessages[player.id || ''] || null}
+                      isCurrentPlayer={currentPlayer === player.id}
+                    />
+                  </div>
                   <div className="mt-1 text-xs font-semibold text-white bg-black bg-opacity-50 px-2 py-1 rounded">
-                    {player.id === socket.id && <span className="text-white text-center">あなた</span>}
+                  {player.id === socket.id && <span className="text-white text-center">あなた</span>}
                     {isTeammate && socket.id !== player.id && <span className="text-blue-300">味方</span>}
                     {!isTeammate && socket.id !== player.id && <span className="text-red-300">敵</span>}
                     <div>貢献度:{player.percent}%</div>
