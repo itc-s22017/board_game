@@ -29,6 +29,7 @@ type Player2 = 'red' | 'blue';
 const Page = ({ params }: { params: { roomId: string } }) => {
   const roomId = params.roomId;
   const router = useRouter();
+  const lastClickTime = useRef(0);
 
   const audioCache = useRef<Record<string, HTMLAudioElement>>({});
 
@@ -36,7 +37,9 @@ const Page = ({ params }: { params: { roomId: string } }) => {
     if (!audioCache.current[mp3]) {
       audioCache.current[mp3] = new Audio(mp3);
     }
-    await audioCache.current[mp3].play();
+    await audioCache.current[mp3].play().catch(error => {
+      console.error('オーディオ再生に失敗しました:', error);
+    });
   }, []);
 
   const [state, setState] = useState({
@@ -57,18 +60,24 @@ const Page = ({ params }: { params: { roomId: string } }) => {
   }, [roomId]);
 
   const handleCardClick = useCallback((index: number) => {
+    const now = Date.now();
+    if (now - lastClickTime.current < 500) { 
+      return;
+    }
+    lastClickTime.current = now;
+
     const flippedCards = [...state.flippedCards];
-  
+
     if (socket.id !== state.currentPlayer || state.card[index].isMatched) return;
-  
+
     if (flippedCards.includes(index) || flippedCards.length === 2) return;
-  
+
     flippedCards.push(index);
-  
+
     socket.emit('flipCard', index, roomId);
   }, [state.currentPlayer, state.card, state.flippedCards, roomId]);
-  
-  
+
+
 
   useEffect(() => {
     const handleBubbleMessage = ({ playerId, message }: ChatMessage) => {
@@ -171,7 +180,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
 
   useEffect(() => {
     if (num === state.waiting) {
-      setState(prev => ({ ...prev, waiting:0}))
+      setState(prev => ({ ...prev, waiting: 0 }))
     }
   }, [state.waiting])
 
@@ -247,7 +256,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
         </div>
       );
     });
-  }, [state.players, state.currentPlayer, socket.id, handleChat, chatMessages, PlayerPositions]);
+  }, [state.players, state.currentPlayer, handleChat, chatMessages, PlayerPositions]);
 
   const handleWinnerDismiss = useCallback(() => {
     setState(prev => ({ ...prev, winner: null }));

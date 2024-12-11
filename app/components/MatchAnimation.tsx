@@ -24,7 +24,7 @@ const MatchAnimation: React.FC<MatchAnimationProps> = ({ isVisible, onAnimationC
         clearTimeout(timer2);
       };
     }
-  }, [isVisible]);
+  }, [isVisible,onAnimationComplete,playSound]);
 
   return (
     <AnimatePresence>
