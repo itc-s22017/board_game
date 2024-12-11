@@ -27,15 +27,15 @@ const Card: React.FC<CardProps> = ({ img, isFlipped, onClick }) => {
                     className={`absolute backface-hidden h-full w-full overflow-hidden rounded-lg ${isFlipped ? 'opacity-100' : 'opacity-0'
                         }`}
                 >
-                    <Image
+                   <Image
                         src={img}
                         alt="Card"
                         fill
+                        priority
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                        style={{ objectFit: "cover" }}
+                        style={{ objectFit: 'cover' }}
                         className="rounded-lg"
                     />
-
                 </div>
             </div>
         </div>
