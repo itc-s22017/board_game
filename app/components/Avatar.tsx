@@ -16,6 +16,8 @@ const presetMessages = [
     "ナイス！",
     "残念...",
     "考え中です",
+    "は？",
+    "何してんの？"
 ];
 
 const SantaHat = () => (

@@ -61,7 +61,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
 
   const handleCardClick = useCallback((index: number) => {
     const now = Date.now();
-    if (now - lastClickTime.current < 500) { 
+    if (now - lastClickTime.current < 500) {
       return;
     }
     lastClickTime.current = now;
@@ -314,13 +314,18 @@ const Page = ({ params }: { params: { roomId: string } }) => {
         </div>
 
         <div className="flex justify-center items-center mt-20">
-          <div className="relative mx-auto grid grid-cols-9 gap-8 rounded-lg bg-white/10 p-20 backdrop-blur-md mt-20">
+          <div className="relative mx-auto grid grid-cols-6 gap-8 rounded-lg bg-white/10 p-20 backdrop-blur-md mt-20">
             {renderCards}
           </div>
         </div>
 
         <div className="mt-8 text-center text-lg font-bold text-white">
-          現在のプレイヤー: {socket.id === state.currentPlayer ? 'あなた' : state.currentPlayer?.toUpperCase()}
+          現在のプレイヤー: {socket.id === state.currentPlayer ? 'あなた' : state.players
+            ? (() => {
+              const playerIndex = state.players.findIndex(player => player?.id === state.currentPlayer);
+              return playerIndex !== -1 ? `プレイヤー${playerIndex + 1}` : '不明';
+            })()
+            : '不明'}
         </div>
       </div>
 
