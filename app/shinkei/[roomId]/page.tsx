@@ -11,11 +11,14 @@ import TurnTransition from '@/app/components/TurnTransition';
 import { toast } from '@/hooks/use-toast';
 import AnimatedBackground from '@/app/components/AnimatedBackground';
 import MatchAnimation from '@/app/components/MatchAnimation';
+import BGMPlayer from '@/app/components/BGMPlayer';
 
 const NOTIFICATION_SOUND = '/audio/notification.mp3';
 const FLIP_CARD_SOUND = '/audio/flipCard.mp3';
 const INCORRECT_SOUND = '/audio/bubu.mp3';
 const CORRECT_SOUND = '/audio/pinpon.mp3';
+const JOIN_SOUND = '/audio/join.mp3';
+const CHRISTMAS_BGM = '/audio/christmas.mp3';
 
 type CardType = {
   num: number;
@@ -33,6 +36,17 @@ const Page = ({ params }: { params: { roomId: string } }) => {
 
   const audioCache = useRef<Record<string, HTMLAudioElement>>({});
 
+  const [state, setState] = useState({
+    flippedCards: [] as number[],
+    card: [] as CardType[],
+    currentPlayer: '',
+    waiting: 0,
+    isStarted: false,
+    winner: null as Player2 | 'draw' | null,
+    players: null as allPlayer[] | null,
+    showMatchAnimation: false,
+  });
+
   const playSound = useCallback(async (mp3: string) => {
     if (!audioCache.current[mp3]) {
       audioCache.current[mp3] = new Audio(mp3);
@@ -42,16 +56,6 @@ const Page = ({ params }: { params: { roomId: string } }) => {
     });
   }, []);
 
-  const [state, setState] = useState({
-    flippedCards: [] as number[],
-    card: [] as CardType[],
-    currentPlayer: '',
-    waiting: 0,
-    isStarted: false,
-    winner: null as Player2 | 'draw' | null,
-    players: null as allPlayer[] | null,
-    showMatchAnimation: false
-  });
 
   const [chatMessages, setChatMessages] = useState<Record<string, string | null>>({});
 
@@ -124,8 +128,8 @@ const Page = ({ params }: { params: { roomId: string } }) => {
         isStarted,
         winner,
         flippedCards: flippedCardIndex
-      }));
-
+      }
+      ));
       if (isStarted) {
         playSound(FLIP_CARD_SOUND);
       }
@@ -141,6 +145,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
         duration: 5000,
       });
     };
+
 
     socket.on('receiveBubbleMessage', handleBubbleMessage);
     socket.on('joinShinkeiResponse', handleJoinRoom);
@@ -160,6 +165,11 @@ const Page = ({ params }: { params: { roomId: string } }) => {
       socket.off('dc');
     };
   }, [roomId, playSound, router]);
+
+  // useEffect(() => {
+  //   playSound(JOIN_SOUND);
+  // }, [state.players])
+
 
   useEffect(() => {
     if (state.flippedCards.length === 2) {
@@ -288,6 +298,13 @@ const Page = ({ params }: { params: { roomId: string } }) => {
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600">
       <AnimatedBackground />
+      <BGMPlayer
+        src={CHRISTMAS_BGM}
+        autoPlay={false}  
+        volume={0.3}
+        className="fixed top-4 right-4 z-50"
+        onPlayStateChange={(isPlaying) => console.log('BGM playing:', isPlaying)}
+      />
       <div className="container relative mx-auto px-4 py-8">
         <TurnTransition className="z-50" currentPlayer={state.currentPlayer} socId={socket.id} />
 
