@@ -296,7 +296,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
   }, [state.card, state.flippedCards, handleCardClick]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600">
+    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-green-700 to-red-700">
       <AnimatedBackground />
       <BGMPlayer
         src={CHRISTMAS_BGM}

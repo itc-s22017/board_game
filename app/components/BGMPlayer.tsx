@@ -8,6 +8,15 @@ interface BGMPlayerProps {
   onPlayStateChange?: (isPlaying: boolean) => void;
 }
 
+// グローバルなAudioインスタンスを管理
+const globalAudio: {
+  instance: HTMLAudioElement | null;
+  isPlaying: boolean;
+} = {
+  instance: null,
+  isPlaying: false
+};
+
 const BGMPlayer: React.FC<BGMPlayerProps> = ({
   src,
   autoPlay = false,
@@ -15,69 +24,85 @@ const BGMPlayer: React.FC<BGMPlayerProps> = ({
   className = '',
   onPlayStateChange
 }) => {
-  const bgmRef = useRef<HTMLAudioElement | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(globalAudio.isPlaying);
 
-  // Audio要素の初期化を別の関数に分離
   const initAudio = useCallback(() => {
-    if (!bgmRef.current) {
-      bgmRef.current = new Audio(src);
-      bgmRef.current.loop = true;
-      bgmRef.current.volume = volume;
+    if (!globalAudio.instance) {
+      globalAudio.instance = new Audio(src);
+      globalAudio.instance.loop = true;
+      globalAudio.instance.volume = volume;
     }
+    return globalAudio.instance;
   }, [src, volume]);
 
   const toggleBGM = useCallback(() => {
-    initAudio();
+    const audio = globalAudio.instance || initAudio();
 
-    if (isPlaying) {
-      bgmRef.current?.pause();
+    if (globalAudio.isPlaying) {
+      audio.pause();
+      globalAudio.isPlaying = false;
     } else {
-      bgmRef.current?.play().catch(error => {
+      audio.play().catch(error => {
         console.error('BGM再生に失敗しました:', error);
+        globalAudio.isPlaying = false;
       });
+      globalAudio.isPlaying = true;
     }
-    setIsPlaying(!isPlaying);
-    onPlayStateChange?.(!isPlaying);
-  }, [isPlaying, initAudio, onPlayStateChange]);
-
-  // 初期化用のEffect
-  useEffect(() => {
-    initAudio();
     
-    if (autoPlay) {
-      bgmRef.current?.play().catch(error => {
+    setIsPlaying(globalAudio.isPlaying);
+    onPlayStateChange?.(globalAudio.isPlaying);
+  }, [initAudio, onPlayStateChange]);
+
+  useEffect(() => {
+    const audio = initAudio();
+
+    if (autoPlay && !globalAudio.isPlaying) {
+      audio.play().catch(error => {
         console.error('自動再生に失敗しました:', error);
       });
+      globalAudio.isPlaying = true;
       setIsPlaying(true);
       onPlayStateChange?.(true);
     }
 
     return () => {
-      if (bgmRef.current) {
-        bgmRef.current.pause();
-        bgmRef.current = null;
+      // コンポーネントがアンマウントされても音楽は停止しない
+      // 必要な場合のみ以下のコメントを解除
+      /*
+      if (globalAudio.instance && !document.querySelector('[data-bgm-player]')) {
+        globalAudio.instance.pause();
+        globalAudio.instance = null;
+        globalAudio.isPlaying = false;
       }
+      */
     };
   }, [initAudio, autoPlay, onPlayStateChange]);
 
-  // volumeの変更を監視
   useEffect(() => {
-    if (bgmRef.current) {
-      bgmRef.current.volume = volume;
+    if (globalAudio.instance) {
+      globalAudio.instance.volume = volume;
     }
   }, [volume]);
 
   return (
     <button
+      data-bgm-player
       onClick={toggleBGM}
-      className={`px-4 py-2 bg-white/20 backdrop-blur-md rounded-full 
-        hover:bg-white/30 transition-colors duration-200 
-        text-white font-medium ${className}`}
+      className={`px-4 py-2 bg-gradient-to-r from-green-400 via-red-500 to-yellow-500 
+        shadow-lg rounded-full hover:shadow-xl transition-all duration-300 
+        text-white font-medium flex items-center justify-center ${className}`}
     >
-      {isPlaying ? '🔊 BGM OFF' : '🔈 BGM ON'}
+      {isPlaying ? (
+        <>
+          🎄 BGM OFF
+        </>
+      ) : (
+        <>
+          🎅 BGM ON
+        </>
+      )}
     </button>
   );
 };
 
-export default BGMPlayer;
+export default React.memo(BGMPlayer);
