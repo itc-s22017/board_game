@@ -146,6 +146,11 @@ const Page = ({ params }: { params: { roomId: string } }) => {
       });
     };
 
+    socket.on('userDisconnected', (data) => {
+      console.log('ユーザーが切断されました。理由:', data.reason);
+  });
+
+
 
     socket.on('receiveBubbleMessage', handleBubbleMessage);
     socket.on('joinShinkeiResponse', handleJoinRoom);
@@ -153,6 +158,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
     socket.on('updateShinkeiGameState', handleGameStateUpdate);
     socket.on('updatePlayers', handlePlayerUpdate);
     socket.on('dc', handleDisconnect);
+
 
     socket.emit('joinRoom', roomId, "shinkei");
 
@@ -163,6 +169,8 @@ const Page = ({ params }: { params: { roomId: string } }) => {
       socket.off('updateShinkeiGameState');
       socket.off('updatePlayers');
       socket.off('dc');
+      socket.off('userDisconnected');
+
     };
   }, [roomId, playSound, router]);
 
