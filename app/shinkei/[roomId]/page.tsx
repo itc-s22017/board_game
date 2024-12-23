@@ -331,7 +331,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
         </div>
 
         <div className="flex justify-center items-center mt-20">
-          <div className="relative mx-auto grid grid-cols-6 gap-8 rounded-lg bg-white/10 p-20 backdrop-blur-md mt-20">
+          <div className="relative mx-auto grid grid-cols-4 gap-8 rounded-lg bg-white/10 p-20 backdrop-blur-md mt-20">
             {renderCards}
           </div>
         </div>
