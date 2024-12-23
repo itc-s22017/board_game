@@ -146,6 +146,11 @@ const Page = ({ params }: { params: { roomId: string } }) => {
       });
     };
 
+    socket.on('userDisconnected', (data) => {
+      console.log('ユーザーが切断されました。理由:', data.reason);
+  });
+
+
 
     socket.on('receiveBubbleMessage', handleBubbleMessage);
     socket.on('joinShinkeiResponse', handleJoinRoom);
@@ -153,6 +158,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
     socket.on('updateShinkeiGameState', handleGameStateUpdate);
     socket.on('updatePlayers', handlePlayerUpdate);
     socket.on('dc', handleDisconnect);
+
 
     socket.emit('joinRoom', roomId, "shinkei");
 
@@ -163,13 +169,10 @@ const Page = ({ params }: { params: { roomId: string } }) => {
       socket.off('updateShinkeiGameState');
       socket.off('updatePlayers');
       socket.off('dc');
+      socket.off('userDisconnected');
+
     };
   }, [roomId, playSound, router]);
-
-  // useEffect(() => {
-  //   playSound(JOIN_SOUND);
-  // }, [state.players])
-
 
   useEffect(() => {
     if (state.flippedCards.length === 2) {
@@ -220,10 +223,10 @@ const Page = ({ params }: { params: { roomId: string } }) => {
 
   const PlayerPositions = useMemo(() => {
     const positions = [
-      'top-4 left-4',
-      'top-4 right-4',
-      'bottom-4 left-4',
-      'bottom-4 right-4'
+      'top-2 left-2 sm:top-4 sm:left-4',
+      'top-2 right-2 sm:top-4 sm:right-4',
+      'bottom-2 left-2 sm:bottom-4 sm:left-4',
+      'bottom-2 right-2 sm:bottom-4 sm:right-4'
     ];
     return positions;
   }, []);
@@ -242,8 +245,8 @@ const Page = ({ params }: { params: { roomId: string } }) => {
           key={`${player.id}-${index}`}
           className={`absolute ${PlayerPositions[index]}`}
         >
-          <div className="flex flex-col items-center mt-20">
-            <div className="relative">
+          <div className="flex flex-col items-center mt-10 sm:mt-20">
+            <div className="relative mobile-avatar">
               <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center text-black font-bold text-sm z-10">
                 {index + 1}
               </div>
@@ -255,7 +258,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
                 isCurrentPlayer={state.currentPlayer === player.id}
               />
             </div>
-            <div className="mt-1 text-xs font-semibold text-white bg-black bg-opacity-50 px-2 py-1 rounded">
+            <div className="mt-1 text-xs font-semibold text-white bg-black bg-opacity-50 px-2 py-1 rounded mobile-player-info">
               {player.id === socket.id && <span className="text-white text-center">あなた</span>}
               {isTeammate && socket.id !== player.id && <span className="text-blue-300">味方</span>}
               {!isTeammate && socket.id !== player.id && <span className="text-red-300">敵</span>}
@@ -295,17 +298,28 @@ const Page = ({ params }: { params: { roomId: string } }) => {
     });
   }, [state.card, state.flippedCards, handleCardClick]);
 
+  const mobileStyles = `
+  @media (max-width: 640px) {
+    .mobile-avatar {
+      transform: scale(0.7);
+    }
+    .mobile-player-info {
+      font-size: 0.6rem;
+    }
+  }
+`;
+
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600">
+    <div className="relative min-h-screen w-full overflow-hidden bg-gradient-to-br from-green-700 to-red-700">
       <AnimatedBackground />
       <BGMPlayer
         src={CHRISTMAS_BGM}
         autoPlay={false}  
         volume={0.3}
-        className="fixed top-4 right-4 z-50"
+        className="fixed top-2 right-2 sm:top-4 sm:right-4 z-50 scale-75 sm:scale-100"
         onPlayStateChange={(isPlaying) => console.log('BGM playing:', isPlaying)}
       />
-      <div className="container relative mx-auto px-4 py-8">
+      <div className="container relative mx-auto px-2 py-4 sm:px-4 sm:py-8">
         <TurnTransition className="z-50" currentPlayer={state.currentPlayer} socId={socket.id} />
 
         {state.flippedCards.length >= 2 && state.flippedCards[0] !== undefined && state.flippedCards[1] !== undefined &&
@@ -336,7 +350,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
           </div>
         </div>
 
-        <div className="mt-8 text-center text-lg font-bold text-white">
+        <div className="mt-4 sm:mt-8 text-center text-sm sm:text-lg font-bold text-white">
           現在のプレイヤー: {socket.id === state.currentPlayer ? 'あなた' : state.players
             ? (() => {
               const playerIndex = state.players.findIndex(player => player?.id === state.currentPlayer);
@@ -359,8 +373,10 @@ const Page = ({ params }: { params: { roomId: string } }) => {
           onDismiss={handleWinnerDismiss}
         />
       )}
+      <style jsx>{mobileStyles}</style>
     </div>
   );
 }
 
 export default React.memo(Page);
+
