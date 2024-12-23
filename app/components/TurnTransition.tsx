@@ -29,7 +29,7 @@ const TurnTransition: React.FC<TurnTransitionProps> = ({ currentPlayer, socId })
           className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 transform"
         >
           <div className="rounded-lg bg-gradient-to-r from-green-400 via-red-500 to-yellow-500 px-6 py-3 text-2xl font-bold text-white shadow-lg">
-            {isYourTurn ? "🎄 あなたのターンです！ 🎅" : `🎄 ${currentPlayer}のターンです 🎅`}
+            {isYourTurn ? "🎄 あなたのターンです！ 🎅" : `🎄 プレイヤー${currentPlayer} のターンです 🎅`}
           </div>
         </motion.div>
       )}

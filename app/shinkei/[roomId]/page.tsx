@@ -12,6 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import AnimatedBackground from '@/app/components/AnimatedBackground';
 import MatchAnimation from '@/app/components/MatchAnimation';
 import BGMPlayer from '@/app/components/BGMPlayer';
+import { stat } from 'fs';
 
 const NOTIFICATION_SOUND = '/audio/notification.mp3';
 const FLIP_CARD_SOUND = '/audio/flipCard.mp3';
@@ -148,7 +149,7 @@ const Page = ({ params }: { params: { roomId: string } }) => {
 
     socket.on('userDisconnected', (data) => {
       console.log('ユーザーが切断されました。理由:', data.reason);
-  });
+    });
 
 
 
@@ -314,14 +315,19 @@ const Page = ({ params }: { params: { roomId: string } }) => {
       <AnimatedBackground />
       <BGMPlayer
         src={CHRISTMAS_BGM}
-        autoPlay={false}  
+        autoPlay={false}
         volume={0.3}
         className="fixed top-2 right-2 sm:top-4 sm:right-4 z-50 scale-75 sm:scale-100"
         onPlayStateChange={(isPlaying) => console.log('BGM playing:', isPlaying)}
       />
       <div className="container relative mx-auto px-2 py-4 sm:px-4 sm:py-8">
-        <TurnTransition className="z-50" currentPlayer={state.currentPlayer} socId={socket.id} />
-
+        <TurnTransition
+          className="z-50"
+          currentPlayer={state.players && state.players.length > 0
+            ? ((state.players.findIndex(player => state.currentPlayer === player?.id) ?? -1) + 1).toString()
+            : state.currentPlayer}
+          socId={socket.id}
+        />
         {state.flippedCards.length >= 2 && state.flippedCards[0] !== undefined && state.flippedCards[1] !== undefined &&
           state.card[state.flippedCards[0]] && state.card[state.flippedCards[1]] &&
           state.card[state.flippedCards[0]].num === state.card[state.flippedCards[1]].num ? (
